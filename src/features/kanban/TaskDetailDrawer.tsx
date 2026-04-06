@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input'
 import type { KanbanTask, TaskPriority, TaskStatus } from './types'
 import { COLUMN_LABELS } from './types'
 import { priorityPillClasses, statusPillClasses } from './tone'
+import { CardChat } from './CardChat'
+
+type DrawerTab = 'details' | 'chat'
 
 interface TaskDetailDrawerProps {
   task: KanbanTask | null
@@ -28,6 +31,7 @@ interface TaskDetailDrawerProps {
         | 'priority'
         | 'labels'
         | 'dueAt'
+        | 'sessionId'
       >
     >,
   ) => Promise<void>
@@ -64,6 +68,7 @@ export function TaskDetailDrawer({
   const [labelsInput, setLabelsInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [activeTab, setActiveTab] = useState<DrawerTab>('details')
 
   // Sync form state when task changes
   useEffect(() => {
@@ -74,8 +79,15 @@ export function TaskDetailDrawer({
       setPriority(task.priority)
       setLabelsInput(task.labels.join(', '))
       setConfirmDelete(false)
+      setActiveTab('details')
     }
   }, [task])
+
+  const handleSessionCreated = async (sessionId: string) => {
+    if (task) {
+      await onSave(task.id, { sessionId })
+    }
+  }
 
   const handleSave = async () => {
     if (!task || !title.trim()) return
@@ -130,26 +142,58 @@ export function TaskDetailDrawer({
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between border-b px-4 py-3"
+          className="border-b px-4 py-3"
           style={{ borderColor: 'var(--theme-border)' }}
         >
-          <h2
-            className="text-base font-semibold"
-            style={{ color: 'var(--theme-text)' }}
-          >
-            Task Details
-          </h2>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={18} />
-          </Button>
+          <div className="flex items-center justify-between mb-2">
+            <h2
+              className="text-base font-semibold truncate pr-2"
+              style={{ color: 'var(--theme-text)' }}
+            >
+              {task?.title || 'Task Details'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={18} />
+            </Button>
+          </div>
+          {/* Tabs */}
+          <div className="flex gap-1">
+            {(['details', 'chat'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                  activeTab === tab
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'hover:bg-white/5',
+                )}
+                style={activeTab !== tab ? { color: 'var(--theme-muted)' } : undefined}
+              >
+                {tab === 'details' ? 'Details' : `Chat${task?.sessionId ? '' : ''}`}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Body */}
+        {/* Chat tab */}
+        {activeTab === 'chat' && task && (
+          <CardChat
+            taskId={task.id}
+            taskTitle={task.title}
+            sessionId={task.sessionId}
+            onSessionCreated={handleSessionCreated}
+          />
+        )}
+
+        {/* Details tab */}
+        {activeTab === 'details' && (
         <div className="flex-1 overflow-y-auto p-4">
           {task && (
             <div className="flex flex-col gap-4">
@@ -333,8 +377,10 @@ export function TaskDetailDrawer({
             </div>
           )}
         </div>
+        )}
 
-        {/* Footer */}
+        {/* Footer (details tab only) */}
+        {activeTab === 'details' && (
         <div
           className="flex items-center justify-between border-t px-4 py-3"
           style={{ borderColor: 'var(--theme-border)' }}
@@ -362,6 +408,7 @@ export function TaskDetailDrawer({
             </Button>
           </div>
         </div>
+        )}
       </div>
     </>
   )
