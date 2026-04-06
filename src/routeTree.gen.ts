@@ -65,6 +65,7 @@ import { Route as ApiHermesJobsJobIdRouteImport } from './routes/api/hermes-jobs
 import { Route as ApiSessionsSessionKeyStatusRouteImport } from './routes/api/sessions/$sessionKey.status'
 import { Route as ApiKanbanTasksTaskIdSessionRouteImport } from './routes/api/kanban-tasks.$taskId.session'
 import { Route as ApiKanbanTasksTaskIdReorderRouteImport } from './routes/api/kanban-tasks.$taskId.reorder'
+import { Route as ApiKanbanTasksTaskIdExecuteRouteImport } from './routes/api/kanban-tasks.$taskId.execute'
 
 const TerminalRoute = TerminalRouteImport.update({
   id: '/terminal',
@@ -349,6 +350,12 @@ const ApiKanbanTasksTaskIdReorderRoute =
     path: '/reorder',
     getParentRoute: () => ApiKanbanTasksTaskIdRoute,
   } as any)
+const ApiKanbanTasksTaskIdExecuteRoute =
+  ApiKanbanTasksTaskIdExecuteRouteImport.update({
+    id: '/execute',
+    path: '/execute',
+    getParentRoute: () => ApiKanbanTasksTaskIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
@@ -461,6 +469,7 @@ export interface FileRoutesByTo {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
@@ -520,6 +529,7 @@ export interface FileRoutesById {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
@@ -695,6 +707,7 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
@@ -1143,6 +1156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKanbanTasksTaskIdReorderRouteImport
       parentRoute: typeof ApiKanbanTasksTaskIdRoute
     }
+    '/api/kanban-tasks/$taskId/execute': {
+      id: '/api/kanban-tasks/$taskId/execute'
+      path: '/execute'
+      fullPath: '/api/kanban-tasks/$taskId/execute'
+      preLoaderRoute: typeof ApiKanbanTasksTaskIdExecuteRouteImport
+      parentRoute: typeof ApiKanbanTasksTaskIdRoute
+    }
   }
 }
 
@@ -1187,11 +1207,13 @@ const ApiKanbanBoardsRouteWithChildren = ApiKanbanBoardsRoute._addFileChildren(
 )
 
 interface ApiKanbanTasksTaskIdRouteChildren {
+  ApiKanbanTasksTaskIdExecuteRoute: typeof ApiKanbanTasksTaskIdExecuteRoute
   ApiKanbanTasksTaskIdReorderRoute: typeof ApiKanbanTasksTaskIdReorderRoute
   ApiKanbanTasksTaskIdSessionRoute: typeof ApiKanbanTasksTaskIdSessionRoute
 }
 
 const ApiKanbanTasksTaskIdRouteChildren: ApiKanbanTasksTaskIdRouteChildren = {
+  ApiKanbanTasksTaskIdExecuteRoute: ApiKanbanTasksTaskIdExecuteRoute,
   ApiKanbanTasksTaskIdReorderRoute: ApiKanbanTasksTaskIdReorderRoute,
   ApiKanbanTasksTaskIdSessionRoute: ApiKanbanTasksTaskIdSessionRoute,
 }
