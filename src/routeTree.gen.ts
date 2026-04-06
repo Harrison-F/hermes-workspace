@@ -63,6 +63,7 @@ import { Route as ApiKanbanBoardsReorderRouteImport } from './routes/api/kanban-
 import { Route as ApiKanbanBoardsBoardIdRouteImport } from './routes/api/kanban-boards.$boardId'
 import { Route as ApiHermesJobsJobIdRouteImport } from './routes/api/hermes-jobs.$jobId'
 import { Route as ApiSessionsSessionKeyStatusRouteImport } from './routes/api/sessions/$sessionKey.status'
+import { Route as ApiKanbanTasksTaskIdSessionRouteImport } from './routes/api/kanban-tasks.$taskId.session'
 import { Route as ApiKanbanTasksTaskIdReorderRouteImport } from './routes/api/kanban-tasks.$taskId.reorder'
 
 const TerminalRoute = TerminalRouteImport.update({
@@ -336,6 +337,12 @@ const ApiSessionsSessionKeyStatusRoute =
     path: '/$sessionKey/status',
     getParentRoute: () => ApiSessionsRoute,
   } as any)
+const ApiKanbanTasksTaskIdSessionRoute =
+  ApiKanbanTasksTaskIdSessionRouteImport.update({
+    id: '/session',
+    path: '/session',
+    getParentRoute: () => ApiKanbanTasksTaskIdRoute,
+  } as any)
 const ApiKanbanTasksTaskIdReorderRoute =
   ApiKanbanTasksTaskIdReorderRouteImport.update({
     id: '/reorder',
@@ -398,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
+  '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesByTo {
@@ -454,6 +462,7 @@ export interface FileRoutesByTo {
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
+  '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesById {
@@ -512,6 +521,7 @@ export interface FileRoutesById {
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
+  '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRouteTypes {
@@ -571,6 +581,7 @@ export interface FileRouteTypes {
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
     | '/api/kanban-tasks/$taskId/reorder'
+    | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
     | '/api/kanban-tasks/$taskId/reorder'
+    | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
   id:
     | '__root__'
@@ -684,6 +696,7 @@ export interface FileRouteTypes {
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
     | '/api/kanban-tasks/$taskId/reorder'
+    | '/api/kanban-tasks/$taskId/session'
     | '/api/sessions/$sessionKey/status'
   fileRoutesById: FileRoutesById
 }
@@ -1116,6 +1129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSessionsSessionKeyStatusRouteImport
       parentRoute: typeof ApiSessionsRoute
     }
+    '/api/kanban-tasks/$taskId/session': {
+      id: '/api/kanban-tasks/$taskId/session'
+      path: '/session'
+      fullPath: '/api/kanban-tasks/$taskId/session'
+      preLoaderRoute: typeof ApiKanbanTasksTaskIdSessionRouteImport
+      parentRoute: typeof ApiKanbanTasksTaskIdRoute
+    }
     '/api/kanban-tasks/$taskId/reorder': {
       id: '/api/kanban-tasks/$taskId/reorder'
       path: '/reorder'
@@ -1168,10 +1188,12 @@ const ApiKanbanBoardsRouteWithChildren = ApiKanbanBoardsRoute._addFileChildren(
 
 interface ApiKanbanTasksTaskIdRouteChildren {
   ApiKanbanTasksTaskIdReorderRoute: typeof ApiKanbanTasksTaskIdReorderRoute
+  ApiKanbanTasksTaskIdSessionRoute: typeof ApiKanbanTasksTaskIdSessionRoute
 }
 
 const ApiKanbanTasksTaskIdRouteChildren: ApiKanbanTasksTaskIdRouteChildren = {
   ApiKanbanTasksTaskIdReorderRoute: ApiKanbanTasksTaskIdReorderRoute,
+  ApiKanbanTasksTaskIdSessionRoute: ApiKanbanTasksTaskIdSessionRoute,
 }
 
 const ApiKanbanTasksTaskIdRouteWithChildren =

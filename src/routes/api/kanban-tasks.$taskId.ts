@@ -26,6 +26,10 @@ export const Route = createFileRoute('/api/kanban-tasks/$taskId')({
             assignee: body.assignee,
             labels: body.labels,
             version,
+            sessionId: body.sessionId,
+            agentStatus: body.agentStatus,
+            agentSummary: body.agentSummary,
+            spawnedFrom: body.spawnedFrom,
           })
           return new Response(JSON.stringify(task), {
             status: 200,

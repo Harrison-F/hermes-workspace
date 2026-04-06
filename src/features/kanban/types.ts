@@ -36,6 +36,8 @@ export interface TaskFeedback {
   by: TaskActor
   note: string
 }
+export type AgentStatus = 'idle' | 'working' | 'needs-input' | 'done' | 'error'
+
 export interface KanbanTask {
   id: string
   boardId: string
@@ -52,4 +54,8 @@ export interface KanbanTask {
   columnOrder: number
   dueAt?: number
   feedback: TaskFeedback[]
+  sessionId?: string
+  agentStatus?: AgentStatus
+  agentSummary?: string
+  spawnedFrom?: string
 }

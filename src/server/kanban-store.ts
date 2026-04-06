@@ -36,6 +36,8 @@ export interface KanbanBoard {
   config: KanbanBoardConfig
 }
 
+export type AgentStatus = 'idle' | 'working' | 'needs-input' | 'done' | 'error'
+
 export interface KanbanTask {
   id: string
   boardId: string
@@ -51,6 +53,10 @@ export interface KanbanTask {
   labels: string[]
   columnOrder: number
   feedback: Array<{ at: number; by: TaskActor; note: string }>
+  sessionId?: string
+  agentStatus?: AgentStatus
+  agentSummary?: string
+  spawnedFrom?: string
 }
 
 export interface KanbanData {
@@ -341,6 +347,10 @@ export interface UpdateTaskInput {
   assignee?: TaskActor | null
   labels?: string[]
   version: number // Required for CAS
+  sessionId?: string
+  agentStatus?: AgentStatus
+  agentSummary?: string
+  spawnedFrom?: string
 }
 
 export async function updateTask(taskId: string, input: UpdateTaskInput): Promise<KanbanTask> {
@@ -373,6 +383,10 @@ export async function updateTask(taskId: string, input: UpdateTaskInput): Promis
     if (input.priority !== undefined) task.priority = input.priority
     if (input.assignee !== undefined) task.assignee = input.assignee ?? undefined
     if (input.labels !== undefined) task.labels = input.labels
+    if (input.sessionId !== undefined) task.sessionId = input.sessionId
+    if (input.agentStatus !== undefined) task.agentStatus = input.agentStatus
+    if (input.agentSummary !== undefined) task.agentSummary = input.agentSummary
+    if (input.spawnedFrom !== undefined) task.spawnedFrom = input.spawnedFrom
 
     task.updatedAt = now
     task.version += 1
