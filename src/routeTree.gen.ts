@@ -16,6 +16,7 @@ import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BoardRouteImport } from './routes/board'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -37,6 +38,8 @@ import { Route as ApiSendRouteImport } from './routes/api/send'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
+import { Route as ApiKanbanTasksRouteImport } from './routes/api/kanban-tasks'
+import { Route as ApiKanbanBoardsRouteImport } from './routes/api/kanban-boards'
 import { Route as ApiHistoryRouteImport } from './routes/api/history'
 import { Route as ApiHermesJobsRouteImport } from './routes/api/hermes-jobs'
 import { Route as ApiHermesConfigRouteImport } from './routes/api/hermes-config'
@@ -55,8 +58,12 @@ import { Route as ApiMemoryWriteRouteImport } from './routes/api/memory/write'
 import { Route as ApiMemorySearchRouteImport } from './routes/api/memory/search'
 import { Route as ApiMemoryReadRouteImport } from './routes/api/memory/read'
 import { Route as ApiMemoryListRouteImport } from './routes/api/memory/list'
+import { Route as ApiKanbanTasksTaskIdRouteImport } from './routes/api/kanban-tasks.$taskId'
+import { Route as ApiKanbanBoardsReorderRouteImport } from './routes/api/kanban-boards.reorder'
+import { Route as ApiKanbanBoardsBoardIdRouteImport } from './routes/api/kanban-boards.$boardId'
 import { Route as ApiHermesJobsJobIdRouteImport } from './routes/api/hermes-jobs.$jobId'
 import { Route as ApiSessionsSessionKeyStatusRouteImport } from './routes/api/sessions/$sessionKey.status'
+import { Route as ApiKanbanTasksTaskIdReorderRouteImport } from './routes/api/kanban-tasks.$taskId.reorder'
 
 const TerminalRoute = TerminalRouteImport.update({
   id: '/terminal',
@@ -91,6 +98,11 @@ const FilesRoute = FilesRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoardRoute = BoardRouteImport.update({
+  id: '/board',
+  path: '/board',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -198,6 +210,16 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
   path: '/api/models',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKanbanTasksRoute = ApiKanbanTasksRouteImport.update({
+  id: '/api/kanban-tasks',
+  path: '/api/kanban-tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKanbanBoardsRoute = ApiKanbanBoardsRouteImport.update({
+  id: '/api/kanban-boards',
+  path: '/api/kanban-boards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHistoryRoute = ApiHistoryRouteImport.update({
   id: '/api/history',
   path: '/api/history',
@@ -288,6 +310,21 @@ const ApiMemoryListRoute = ApiMemoryListRouteImport.update({
   path: '/api/memory/list',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKanbanTasksTaskIdRoute = ApiKanbanTasksTaskIdRouteImport.update({
+  id: '/$taskId',
+  path: '/$taskId',
+  getParentRoute: () => ApiKanbanTasksRoute,
+} as any)
+const ApiKanbanBoardsReorderRoute = ApiKanbanBoardsReorderRouteImport.update({
+  id: '/reorder',
+  path: '/reorder',
+  getParentRoute: () => ApiKanbanBoardsRoute,
+} as any)
+const ApiKanbanBoardsBoardIdRoute = ApiKanbanBoardsBoardIdRouteImport.update({
+  id: '/$boardId',
+  path: '/$boardId',
+  getParentRoute: () => ApiKanbanBoardsRoute,
+} as any)
 const ApiHermesJobsJobIdRoute = ApiHermesJobsJobIdRouteImport.update({
   id: '/$jobId',
   path: '/$jobId',
@@ -299,10 +336,17 @@ const ApiSessionsSessionKeyStatusRoute =
     path: '/$sessionKey/status',
     getParentRoute: () => ApiSessionsRoute,
   } as any)
+const ApiKanbanTasksTaskIdReorderRoute =
+  ApiKanbanTasksTaskIdReorderRouteImport.update({
+    id: '/reorder',
+    path: '/reorder',
+    getParentRoute: () => ApiKanbanTasksTaskIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/board': typeof BoardRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
@@ -321,6 +365,8 @@ export interface FileRoutesByFullPath {
   '/api/hermes-config': typeof ApiHermesConfigRoute
   '/api/hermes-jobs': typeof ApiHermesJobsRouteWithChildren
   '/api/history': typeof ApiHistoryRoute
+  '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
+  '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -341,6 +387,9 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof ChatIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
+  '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
+  '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
@@ -348,11 +397,13 @@ export interface FileRoutesByFullPath {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/board': typeof BoardRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
@@ -370,6 +421,8 @@ export interface FileRoutesByTo {
   '/api/hermes-config': typeof ApiHermesConfigRoute
   '/api/hermes-jobs': typeof ApiHermesJobsRouteWithChildren
   '/api/history': typeof ApiHistoryRoute
+  '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
+  '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -390,6 +443,9 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
+  '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
+  '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
@@ -397,12 +453,14 @@ export interface FileRoutesByTo {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/board': typeof BoardRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
@@ -421,6 +479,8 @@ export interface FileRoutesById {
   '/api/hermes-config': typeof ApiHermesConfigRoute
   '/api/hermes-jobs': typeof ApiHermesJobsRouteWithChildren
   '/api/history': typeof ApiHistoryRoute
+  '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
+  '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -441,6 +501,9 @@ export interface FileRoutesById {
   '/chat/': typeof ChatIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
+  '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
+  '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
@@ -448,6 +511,7 @@ export interface FileRoutesById {
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRouteTypes {
@@ -455,6 +519,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/board'
     | '/dashboard'
     | '/files'
     | '/jobs'
@@ -473,6 +538,8 @@ export interface FileRouteTypes {
     | '/api/hermes-config'
     | '/api/hermes-jobs'
     | '/api/history'
+    | '/api/kanban-boards'
+    | '/api/kanban-tasks'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -493,6 +560,9 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/settings/'
     | '/api/hermes-jobs/$jobId'
+    | '/api/kanban-boards/$boardId'
+    | '/api/kanban-boards/reorder'
+    | '/api/kanban-tasks/$taskId'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
@@ -500,11 +570,13 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/reorder'
     | '/api/sessions/$sessionKey/status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$'
+    | '/board'
     | '/dashboard'
     | '/files'
     | '/jobs'
@@ -522,6 +594,8 @@ export interface FileRouteTypes {
     | '/api/hermes-config'
     | '/api/hermes-jobs'
     | '/api/history'
+    | '/api/kanban-boards'
+    | '/api/kanban-tasks'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -542,6 +616,9 @@ export interface FileRouteTypes {
     | '/chat'
     | '/settings'
     | '/api/hermes-jobs/$jobId'
+    | '/api/kanban-boards/$boardId'
+    | '/api/kanban-boards/reorder'
+    | '/api/kanban-tasks/$taskId'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
@@ -549,11 +626,13 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/reorder'
     | '/api/sessions/$sessionKey/status'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/board'
     | '/dashboard'
     | '/files'
     | '/jobs'
@@ -572,6 +651,8 @@ export interface FileRouteTypes {
     | '/api/hermes-config'
     | '/api/hermes-jobs'
     | '/api/history'
+    | '/api/kanban-boards'
+    | '/api/kanban-tasks'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -592,6 +673,9 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/settings/'
     | '/api/hermes-jobs/$jobId'
+    | '/api/kanban-boards/$boardId'
+    | '/api/kanban-boards/reorder'
+    | '/api/kanban-tasks/$taskId'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
@@ -599,12 +683,14 @@ export interface FileRouteTypes {
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
     | '/api/sessions/send'
+    | '/api/kanban-tasks/$taskId/reorder'
     | '/api/sessions/$sessionKey/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  BoardRoute: typeof BoardRoute
   DashboardRoute: typeof DashboardRoute
   FilesRoute: typeof FilesRoute
   JobsRoute: typeof JobsRoute
@@ -623,6 +709,8 @@ export interface RootRouteChildren {
   ApiHermesConfigRoute: typeof ApiHermesConfigRoute
   ApiHermesJobsRoute: typeof ApiHermesJobsRouteWithChildren
   ApiHistoryRoute: typeof ApiHistoryRoute
+  ApiKanbanBoardsRoute: typeof ApiKanbanBoardsRouteWithChildren
+  ApiKanbanTasksRoute: typeof ApiKanbanTasksRouteWithChildren
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
@@ -697,6 +785,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/board': {
+      id: '/board'
+      path: '/board'
+      fullPath: '/board'
+      preLoaderRoute: typeof BoardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -846,6 +941,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/kanban-tasks': {
+      id: '/api/kanban-tasks'
+      path: '/api/kanban-tasks'
+      fullPath: '/api/kanban-tasks'
+      preLoaderRoute: typeof ApiKanbanTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/kanban-boards': {
+      id: '/api/kanban-boards'
+      path: '/api/kanban-boards'
+      fullPath: '/api/kanban-boards'
+      preLoaderRoute: typeof ApiKanbanBoardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/history': {
       id: '/api/history'
       path: '/api/history'
@@ -972,6 +1081,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMemoryListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/kanban-tasks/$taskId': {
+      id: '/api/kanban-tasks/$taskId'
+      path: '/$taskId'
+      fullPath: '/api/kanban-tasks/$taskId'
+      preLoaderRoute: typeof ApiKanbanTasksTaskIdRouteImport
+      parentRoute: typeof ApiKanbanTasksRoute
+    }
+    '/api/kanban-boards/reorder': {
+      id: '/api/kanban-boards/reorder'
+      path: '/reorder'
+      fullPath: '/api/kanban-boards/reorder'
+      preLoaderRoute: typeof ApiKanbanBoardsReorderRouteImport
+      parentRoute: typeof ApiKanbanBoardsRoute
+    }
+    '/api/kanban-boards/$boardId': {
+      id: '/api/kanban-boards/$boardId'
+      path: '/$boardId'
+      fullPath: '/api/kanban-boards/$boardId'
+      preLoaderRoute: typeof ApiKanbanBoardsBoardIdRouteImport
+      parentRoute: typeof ApiKanbanBoardsRoute
+    }
     '/api/hermes-jobs/$jobId': {
       id: '/api/hermes-jobs/$jobId'
       path: '/$jobId'
@@ -985,6 +1115,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/sessions/$sessionKey/status'
       preLoaderRoute: typeof ApiSessionsSessionKeyStatusRouteImport
       parentRoute: typeof ApiSessionsRoute
+    }
+    '/api/kanban-tasks/$taskId/reorder': {
+      id: '/api/kanban-tasks/$taskId/reorder'
+      path: '/reorder'
+      fullPath: '/api/kanban-tasks/$taskId/reorder'
+      preLoaderRoute: typeof ApiKanbanTasksTaskIdReorderRouteImport
+      parentRoute: typeof ApiKanbanTasksTaskIdRoute
     }
   }
 }
@@ -1015,6 +1152,43 @@ const ApiHermesJobsRouteWithChildren = ApiHermesJobsRoute._addFileChildren(
   ApiHermesJobsRouteChildren,
 )
 
+interface ApiKanbanBoardsRouteChildren {
+  ApiKanbanBoardsBoardIdRoute: typeof ApiKanbanBoardsBoardIdRoute
+  ApiKanbanBoardsReorderRoute: typeof ApiKanbanBoardsReorderRoute
+}
+
+const ApiKanbanBoardsRouteChildren: ApiKanbanBoardsRouteChildren = {
+  ApiKanbanBoardsBoardIdRoute: ApiKanbanBoardsBoardIdRoute,
+  ApiKanbanBoardsReorderRoute: ApiKanbanBoardsReorderRoute,
+}
+
+const ApiKanbanBoardsRouteWithChildren = ApiKanbanBoardsRoute._addFileChildren(
+  ApiKanbanBoardsRouteChildren,
+)
+
+interface ApiKanbanTasksTaskIdRouteChildren {
+  ApiKanbanTasksTaskIdReorderRoute: typeof ApiKanbanTasksTaskIdReorderRoute
+}
+
+const ApiKanbanTasksTaskIdRouteChildren: ApiKanbanTasksTaskIdRouteChildren = {
+  ApiKanbanTasksTaskIdReorderRoute: ApiKanbanTasksTaskIdReorderRoute,
+}
+
+const ApiKanbanTasksTaskIdRouteWithChildren =
+  ApiKanbanTasksTaskIdRoute._addFileChildren(ApiKanbanTasksTaskIdRouteChildren)
+
+interface ApiKanbanTasksRouteChildren {
+  ApiKanbanTasksTaskIdRoute: typeof ApiKanbanTasksTaskIdRouteWithChildren
+}
+
+const ApiKanbanTasksRouteChildren: ApiKanbanTasksRouteChildren = {
+  ApiKanbanTasksTaskIdRoute: ApiKanbanTasksTaskIdRouteWithChildren,
+}
+
+const ApiKanbanTasksRouteWithChildren = ApiKanbanTasksRoute._addFileChildren(
+  ApiKanbanTasksRouteChildren,
+)
+
 interface ApiSessionsRouteChildren {
   ApiSessionsSendRoute: typeof ApiSessionsSendRoute
   ApiSessionsSessionKeyStatusRoute: typeof ApiSessionsSessionKeyStatusRoute
@@ -1032,6 +1206,7 @@ const ApiSessionsRouteWithChildren = ApiSessionsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  BoardRoute: BoardRoute,
   DashboardRoute: DashboardRoute,
   FilesRoute: FilesRoute,
   JobsRoute: JobsRoute,
@@ -1050,6 +1225,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHermesConfigRoute: ApiHermesConfigRoute,
   ApiHermesJobsRoute: ApiHermesJobsRouteWithChildren,
   ApiHistoryRoute: ApiHistoryRoute,
+  ApiKanbanBoardsRoute: ApiKanbanBoardsRouteWithChildren,
+  ApiKanbanTasksRoute: ApiKanbanTasksRouteWithChildren,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,

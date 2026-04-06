@@ -4,6 +4,7 @@ import {
   BrainIcon,
   Chat01Icon,
   Clock01Icon,
+  Task01Icon,
   CommandLineIcon,
   DashboardSquare01Icon,
   File01Icon,
@@ -70,6 +71,13 @@ const TABS: Array<TabItem> = [
     icon: Clock01Icon,
     to: '/jobs',
     match: (p) => p.startsWith('/jobs'),
+  },
+  {
+    id: 'board',
+    label: 'Board',
+    icon: Task01Icon,
+    to: '/board',
+    match: (p) => p.startsWith('/board'),
   },
   {
     id: 'memory',
