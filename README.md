@@ -6,12 +6,12 @@
 
 **Your AI agent's command center — chat, files, memory, skills, and terminal in one place.**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-6366F1.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.0-6366F1.svg)](https://github.com/outsourc-e/hermes-workspace)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-6366F1.svg)](CONTRIBUTING.md)
 
-> Not a chat wrapper. A complete workspace — orchestrate agents, browse memory, manage skills, and control everything from one interface.
+> Not a chat wrapper. A complete workspace — orchestrate agents, manage work on the board, browse memory, run tasks, and control everything from one interface.
 
 ![Hermes Workspace](./docs/screenshots/splash.png)
 
@@ -19,14 +19,15 @@
 
 ---
 
-## ✨ Features
+## ✨ Highlights
 
-- 🤖 **Hermes Agent Integration** — Direct gateway connection with real-time SSE streaming
-- 🎨 **8-Theme System** — Official, Classic, Slate, Mono — each with light and dark variants
-- 🔒 **Security Hardened** — Auth middleware on all API routes, CSP headers, exec approval prompts
-- 📱 **Mobile-First PWA** — Full feature parity on any device via Tailscale
-- ⚡ **Live SSE Streaming** — Real-time agent output with tool call rendering
-- 🧠 **Memory & Skills** — Browse, search, and edit agent memory; explore 2,000+ skills
+- 🗂️ **Board-First Workspace** — Hermes Workspace now lands on `/board`, a kanban-style control surface for active work
+- 🤖 **Agentic Chat + Task Execution** — Stream chat in real time, attach sessions to cards, and trigger background task execution from the board
+- 📁 **Files + Terminal** — Inspect files, edit content, and run PTY terminal sessions without leaving the workspace
+- 🧠 **Memory, Skills, and Jobs** — Browse memory, explore skills, and manage scheduled jobs when your backend exposes Hermes APIs
+- 🌐 **Portable by Default** — Works with any OpenAI-compatible backend; Hermes gateway APIs unlock richer features automatically
+- 📱 **Mobile-First PWA** — Full feature parity on phones and tablets via installable web app + Tailscale access
+- 🎨 **8 Themes + Hardened UI** — Official, Classic, Slate, and Mono themes in light/dark variants, plus auth middleware and security guards on server routes
 
 ---
 
@@ -68,14 +69,14 @@ Example Hermes gateway setup:
 ```bash
 git clone https://github.com/outsourc-e/hermes-agent.git
 cd hermes-agent
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e .
+pip3 install -e .
 hermes setup
 hermes --gateway
 ```
 
-If you're using another OpenAI-compatible server, just note its base URL.
+If you're using another OpenAI-compatible server, just note its base URL. Basic chat works in portable mode; Hermes-specific APIs progressively unlock sessions, memory, skills, jobs, and board integrations.
 
 ### Step 2: Install & Run Hermes Workspace
 
@@ -89,7 +90,7 @@ printf '\nHERMES_API_URL=http://127.0.0.1:8642\n' >> .env
 pnpm dev                   # Starts on http://localhost:3000
 ```
 
-> **Verify:** Open `http://localhost:3000` and complete the onboarding flow. First connect the backend, then verify chat works. If your gateway exposes Hermes APIs, advanced features appear automatically.
+> **Verify:** Open `http://localhost:3000` and complete the onboarding flow. The default landing page is the board at `/board`, but chat, files, terminal, jobs, memory, and skills are all available from the sidebar. First verify the backend connection and basic chat; enhanced workspace features appear automatically when Hermes APIs are available.
 
 ### Environment Variables
 
@@ -149,7 +150,7 @@ API_SERVER_ENABLED=true
 **3. Start the gateway and workspace:**
 
 ```bash
-hermes gateway run          # Starts on :8642
+hermes --gateway            # Starts on :8642
 HERMES_API_URL=http://127.0.0.1:8642 pnpm dev
 ```
 
@@ -301,14 +302,23 @@ Features pending cloud infrastructure:
 
 ---
 
-## ✨ Features
+## 🧩 Feature Breakdown
+
+### 🗂️ Board
+
+- `/board` is the default landing page and home base for active work
+- Create and switch boards for different projects or workflows
+- Drag and reorder tasks across kanban columns
+- Open a task drawer for structured editing, status changes, labels, and notes
+- Link a card to an Hermes session and continue the work in the task chat tab
+- Trigger background execution for cards when the backend supports it
 
 ### 💬 Chat
 
 - Real-time SSE streaming with tool call rendering
-- Multi-session management with full history
+- Multi-session management with full history when Hermes session APIs are available
+- Portable-mode chat against any OpenAI-compatible backend
 - Markdown + syntax highlighting
-- Chronological message ordering with merge dedup
 - Inspector panel for session activity, memory, and skills
 
 ### 🧠 Memory
@@ -321,7 +331,12 @@ Features pending cloud infrastructure:
 
 - Browse 2,000+ skills from the registry
 - View skill details, categories, and documentation
-- Skill management per session
+- Skill management per session when supported by the backend
+
+### ⏰ Jobs
+
+- View scheduled jobs and recurring automation
+- Create, edit, pause, resume, and inspect Hermes cron-style jobs when the jobs API is available
 
 ### 📁 Files
 
@@ -355,18 +370,29 @@ Features pending cloud infrastructure:
 
 ### "Workspace loads but chat doesn't work"
 
-The workspace auto-detects your gateway's capabilities on startup. Check your terminal for a line like:
+The workspace auto-detects your backend capabilities on startup. Check your terminal for a line like:
 
 ```
 [gateway] http://127.0.0.1:8642 available: health, models; missing: sessions, skills, memory, config, jobs
-[gateway] Missing Hermes APIs detected. Update Hermes: cd hermes-agent && git pull && pip install -e . && hermes --gateway
 ```
 
-**Fix:** Use our fork which includes extended gateway endpoints:
+If `chat/completions` is reachable, Hermes Workspace should still work in portable mode even when advanced Hermes APIs are missing.
+
+**Fix path:**
+
+1. Verify your backend is reachable and OpenAI-compatible.
+2. Confirm `HERMES_API_URL` points at the correct base URL.
+3. If you want sessions, memory, skills, jobs, and deeper board integrations, run a Hermes gateway that exposes those APIs.
+
+Example Hermes gateway setup:
 
 ```bash
 git clone https://github.com/outsourc-e/hermes-agent.git
-cd hermes-agent && pip install -e . && hermes --gateway
+cd hermes-agent
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -e .
+hermes --gateway
 ```
 
 ### "Connection refused" or workspace hangs on load
@@ -376,7 +402,7 @@ Your Hermes gateway isn't running. Start it:
 ```bash
 cd hermes-agent
 source .venv/bin/activate
-hermes gateway run
+hermes --gateway
 ```
 
 ### Ollama: chat returns empty or model shows "Offline"
@@ -393,9 +419,9 @@ Use `http://127.0.0.1:11434/v1` (not `localhost`) as the base URL.
 
 Verify: `curl http://localhost:8642/health` should return `{"status": "ok"}`.
 
-### "Using upstream NousResearch/hermes-agent"
+### "Using vanilla/upstream hermes-agent"
 
-The upstream hermes-agent supports basic chat via `hermes --gateway`, but doesn't include extended endpoints (sessions, memory, skills, config) yet. The workspace will work in **portable mode** with basic chat. For full features, use our fork (`outsourc-e/hermes-agent`).
+Upstream `hermes-agent` works for basic chat via `hermes --gateway`, but it may not expose the extended workspace APIs for sessions, memory, skills, jobs, and card-linked board flows. Hermes Workspace will still work in **portable mode**. If you want the richer workspace surfaces, run a Hermes gateway build that includes those APIs.
 
 ### Docker: "Unauthorized" or "Connection refused" to hermes-agent
 
@@ -450,19 +476,21 @@ The Docker setup uses `hermes --gateway` automatically — no action needed if u
 
 ## 🗺️ Roadmap
 
-| Feature                       | Status            |
-| ----------------------------- | ----------------- |
-| Chat + SSE Streaming          | ✅ Shipped        |
-| Files + Terminal              | ✅ Shipped        |
-| Memory Browser                | ✅ Shipped        |
-| Skills Browser                | ✅ Shipped        |
-| Mobile PWA + Tailscale        | ✅ Shipped        |
-| 8-Theme System                | ✅ Shipped        |
-| Native Desktop App (Electron) | 🔨 In Development |
-| Model Switching & Config      | 🔨 In Development |
-| Chat Abort / Cancel           | 🔨 In Development |
-| Cloud / Hosted Version        | 🔜 Coming Soon    |
-| Team Collaboration            | 🔜 Coming Soon    |
+| Feature                               | Status            |
+| ------------------------------------- | ----------------- |
+| Board-first kanban workspace          | ✅ Shipped        |
+| Chat + SSE Streaming                  | ✅ Shipped        |
+| Files + Terminal                      | ✅ Shipped        |
+| Memory Browser                        | ✅ Shipped        |
+| Skills Browser                        | ✅ Shipped        |
+| Jobs UI                               | ✅ Shipped        |
+| Mobile PWA + Tailscale                | ✅ Shipped        |
+| 8-Theme System                        | ✅ Shipped        |
+| Card-linked chat + task execution     | ✅ Shipped        |
+| Native Desktop App (Electron)         | 🔨 In Development |
+| Hosted / cloud deployment             | 🔜 Coming Soon    |
+| Team collaboration                    | 🔜 Coming Soon    |
+| Broader upstream Hermes API alignment | 🔜 Coming Soon    |
 
 ---
 

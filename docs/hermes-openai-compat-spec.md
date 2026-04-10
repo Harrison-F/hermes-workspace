@@ -4,7 +4,7 @@
 
 **Goal:** Make Hermes Workspace work out of the box against vanilla `hermes-agent` and any OpenAI-compatible backend, while unlocking richer workspace features automatically when Hermes-specific APIs are available.
 
-**Status:** Approved architectural constraint for the next implementation pass.
+**Status:** Step 1 is largely implemented in the workspace. This spec now serves as the compatibility contract and the checklist for keeping docs/UI behavior aligned with that direction.
 
 ---
 
