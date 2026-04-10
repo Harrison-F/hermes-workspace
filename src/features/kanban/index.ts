@@ -12,8 +12,8 @@ export type {
   KanbanBoard as KanbanBoardType,
   KanbanBoardConfig,
   TaskStatus,
-  TaskPriority,
+  TaskVisibility,
   TaskActor,
   TaskFeedback,
 } from './types'
-export { COLUMNS, COLUMN_LABELS } from './types'
+export { COLUMNS, COLUMN_LABELS, VISIBILITY_LABELS } from './types'

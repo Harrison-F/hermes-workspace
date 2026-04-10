@@ -24,13 +24,16 @@ export const Route = createFileRoute('/api/kanban-tasks/$taskId/reorder')({
               headers: { 'Content-Type': 'application/json' },
             })
           }
-          // Version is optional — if not provided, read current version
-          const { getTaskVersion } = await import('../../server/kanban-store')
-          const version = typeof body.version === 'number' ? body.version : await getTaskVersion(params.taskId)
+          if (typeof body.version !== 'number') {
+            return new Response(JSON.stringify({ error: 'version is required' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
           const task = await reorderTask(params.taskId, {
             targetStatus,
             targetIndex,
-            version,
+            version: body.version,
           })
           return new Response(JSON.stringify(task), {
             status: 200,

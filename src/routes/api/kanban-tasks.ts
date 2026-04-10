@@ -4,7 +4,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { listTasks, createTask, KanbanError } from '../../server/kanban-store'
-import type { TaskPriority, TaskStatus } from '../../server/kanban-store'
+import type { TaskVisibility, TaskStatus } from '../../server/kanban-store'
 
 export const Route = createFileRoute('/api/kanban-tasks')({
   server: {
@@ -17,15 +17,15 @@ export const Route = createFileRoute('/api/kanban-tasks')({
           const url = new URL(request.url)
           const boardId = url.searchParams.get('boardId') ?? undefined
           const status = (url.searchParams.get('status') as TaskStatus) ?? undefined
-          const priorityParam = url.searchParams.getAll('priority')
-          const priority = priorityParam.length > 0 ? (priorityParam as TaskPriority[]) : undefined
+          const visibilityParam = url.searchParams.getAll('visibility')
+          const visibility = visibilityParam.length > 0 ? (visibilityParam as TaskVisibility[]) : undefined
           const q = url.searchParams.get('q') ?? undefined
           const limitStr = url.searchParams.get('limit')
           const offsetStr = url.searchParams.get('offset')
           const limit = limitStr ? parseInt(limitStr, 10) : undefined
           const offset = offsetStr ? parseInt(offsetStr, 10) : undefined
 
-          const result = await listTasks({ boardId, status, priority, q, limit, offset })
+          const result = await listTasks({ boardId, status, visibility, q, limit, offset })
           return new Response(JSON.stringify(result.tasks), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -62,7 +62,7 @@ export const Route = createFileRoute('/api/kanban-tasks')({
             title: body.title,
             description: body.description,
             status: body.status,
-            priority: body.priority,
+            visibility: body.visibility,
             createdBy: body.createdBy,
             assignee: body.assignee,
             labels: body.labels,

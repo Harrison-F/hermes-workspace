@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DialogRoot,
   DialogContent,
@@ -9,22 +9,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import type { TaskPriority, TaskStatus } from './types'
-import { COLUMN_LABELS } from './types'
-import { priorityPillClasses, statusPillClasses } from './tone'
+import type { TaskVisibility, TaskStatus } from './types'
+import { COLUMN_LABELS, VISIBILITY_LABELS } from './types'
+import { visibilityPillClasses, statusPillClasses } from './tone'
 
 interface CreateTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   boardId: string
   initialStatus?: TaskStatus
+  initialVisibility?: TaskVisibility
   onSubmit: (data: {
     boardId: string
     title: string
     description: string
     status: TaskStatus
-    priority: TaskPriority
-    labels: string[]
+    visibility: TaskVisibility
   }) => Promise<void>
 }
 
@@ -35,12 +35,18 @@ const STATUS_OPTIONS: TaskStatus[] = [
   'review',
   'done',
 ]
-const PRIORITY_OPTIONS: TaskPriority[] = ['critical', 'high', 'normal', 'low']
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
+const VISIBILITY_OPTIONS: TaskVisibility[] = ['yes', 'no', 'somewhat']
+
+export function getCreateTaskDefaults(
+  initialStatus: TaskStatus,
+  initialVisibility: TaskVisibility = 'no',
+) {
+  return {
+    title: '',
+    description: '',
+    status: initialStatus,
+    visibility: initialVisibility,
+  }
 }
 
 export function CreateTaskDialog({
@@ -48,39 +54,44 @@ export function CreateTaskDialog({
   onOpenChange,
   boardId,
   initialStatus = 'todo',
+  initialVisibility = 'no',
   onSubmit,
 }: CreateTaskDialogProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<TaskStatus>(initialStatus)
-  const [priority, setPriority] = useState<TaskPriority>('normal')
-  const [labelsInput, setLabelsInput] = useState('')
+  const defaults = getCreateTaskDefaults(initialStatus, initialVisibility)
+  const [title, setTitle] = useState(defaults.title)
+  const [description, setDescription] = useState(defaults.description)
+  const [status, setStatus] = useState<TaskStatus>(defaults.status)
+  const [visibility, setVisibility] = useState<TaskVisibility>(defaults.visibility)
   const [submitting, setSubmitting] = useState(false)
 
   const reset = () => {
-    setTitle('')
-    setDescription('')
-    setStatus(initialStatus)
-    setPriority('normal')
-    setLabelsInput('')
+    const nextDefaults = getCreateTaskDefaults(initialStatus, initialVisibility)
+    setTitle(nextDefaults.title)
+    setDescription(nextDefaults.description)
+    setStatus(nextDefaults.status)
+    setVisibility(nextDefaults.visibility)
   }
+
+  useEffect(() => {
+    if (!open) return
+    const nextDefaults = getCreateTaskDefaults(initialStatus, initialVisibility)
+    setTitle(nextDefaults.title)
+    setDescription(nextDefaults.description)
+    setStatus(nextDefaults.status)
+    setVisibility(nextDefaults.visibility)
+  }, [initialStatus, initialVisibility, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
     setSubmitting(true)
     try {
-      const labels = labelsInput
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean)
       await onSubmit({
         boardId,
         title: title.trim(),
         description: description.trim(),
         status,
-        priority,
-        labels,
+        visibility,
       })
       reset()
       onOpenChange(false)
@@ -90,7 +101,13 @@ export function CreateTaskDialog({
   }
 
   return (
-    <DialogRoot open={open} onOpenChange={onOpenChange}>
+    <DialogRoot
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) reset()
+        onOpenChange(nextOpen)
+      }}
+    >
       <DialogContent className="w-[min(480px,92vw)]">
         <form onSubmit={handleSubmit}>
           <div className="p-5">
@@ -172,54 +189,38 @@ export function CreateTaskDialog({
                 </div>
               </div>
 
-              {/* Priority */}
+              {/* Visibility */}
               <div>
                 <label
                   className="mb-1 block text-xs font-medium"
                   style={{ color: 'var(--theme-muted)' }}
                 >
-                  Priority
+                  Visibility
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {PRIORITY_OPTIONS.map((p) => (
+                  {VISIBILITY_OPTIONS.map((p) => (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setPriority(p)}
+                      onClick={() => setVisibility(p)}
                       className={cn(
                         'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
-                        priority === p
-                          ? priorityPillClasses(p)
+                        visibility === p
+                          ? visibilityPillClasses(p)
                           : 'border-transparent opacity-50 hover:opacity-80',
                       )}
                       style={
-                        priority !== p
+                        visibility !== p
                           ? { color: 'var(--theme-muted)' }
                           : undefined
                       }
                     >
-                      {PRIORITY_LABELS[p]}
+                      {VISIBILITY_LABELS[p]}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Labels */}
-              <div>
-                <label
-                  className="mb-1 block text-xs font-medium"
-                  style={{ color: 'var(--theme-muted)' }}
-                >
-                  Labels (comma-separated)
-                </label>
-                <Input
-                  value={labelsInput}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setLabelsInput(e.target.value)
-                  }
-                  placeholder="bug, feature, urgent"
-                />
-              </div>
             </div>
           </div>
 

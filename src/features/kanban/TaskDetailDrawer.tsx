@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatCompleteByDateInputValue } from './KanbanPanel'
 import { HugeiconsIcon } from '@hugeicons/react'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
@@ -7,9 +8,9 @@ import FloppyDiskIcon from '@hugeicons/core-free-icons/FloppyDiskIcon'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { KanbanTask, TaskPriority, TaskStatus } from './types'
-import { COLUMN_LABELS } from './types'
-import { priorityPillClasses, statusPillClasses } from './tone'
+import type { KanbanTask, TaskVisibility, TaskStatus } from './types'
+import { COLUMN_LABELS, VISIBILITY_LABELS } from './types'
+import { visibilityPillClasses, statusPillClasses } from './tone'
 import { CardChat } from './CardChat'
 
 type DrawerTab = 'details' | 'chat'
@@ -26,10 +27,10 @@ interface TaskDetailDrawerProps {
         | 'title'
         | 'description'
         | 'status'
-        | 'priority'
-        | 'labels'
+        | 'visibility'
         | 'dueAt'
         | 'sessionId'
+        | 'comment'
       >
     >,
   ) => Promise<void>
@@ -44,13 +45,7 @@ const STATUS_OPTIONS: TaskStatus[] = [
   'done',
   'cancelled',
 ]
-const PRIORITY_OPTIONS: TaskPriority[] = ['critical', 'high', 'normal', 'low']
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
-}
+const VISIBILITY_OPTIONS: TaskVisibility[] = ['yes', 'no', 'somewhat']
 
 export function TaskDetailDrawer({
   task,
@@ -62,8 +57,9 @@ export function TaskDetailDrawer({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<TaskStatus>('todo')
-  const [priority, setPriority] = useState<TaskPriority>('normal')
-  const [labelsInput, setLabelsInput] = useState('')
+  const [visibility, setVisibility] = useState<TaskVisibility>('no')
+  const [completeBy, setCompleteBy] = useState('')
+  const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [activeTab, setActiveTab] = useState<DrawerTab>('details')
@@ -74,8 +70,9 @@ export function TaskDetailDrawer({
       setTitle(task.title)
       setDescription(task.description ?? '')
       setStatus(task.status)
-      setPriority(task.priority)
-      setLabelsInput(task.labels.join(', '))
+      setVisibility(task.visibility)
+      setCompleteBy(formatCompleteByDateInputValue(task.dueAt))
+      setComment('')
       setConfirmDelete(false)
       setActiveTab('details')
     }
@@ -91,16 +88,13 @@ export function TaskDetailDrawer({
     if (!task || !title.trim()) return
     setSaving(true)
     try {
-      const labels = labelsInput
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean)
       await onSave(task.id, {
         title: title.trim(),
         description: description.trim() || undefined,
         status,
-        priority,
-        labels,
+        visibility,
+        dueAt: completeBy ? new Date(`${completeBy}T12:00:00`).getTime() : null,
+        comment: comment.trim() || undefined,
       })
       onClose()
     } finally {
@@ -264,52 +258,51 @@ export function TaskDetailDrawer({
                 </div>
               </div>
 
-              {/* Priority */}
+              {/* Visibility */}
               <div>
                 <label
                   className="mb-1 block text-xs font-medium"
                   style={{ color: 'var(--theme-muted)' }}
                 >
-                  Priority
+                  Visibility
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {PRIORITY_OPTIONS.map((p) => (
+                  {VISIBILITY_OPTIONS.map((p) => (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setPriority(p)}
+                      onClick={() => setVisibility(p)}
                       className={cn(
                         'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
-                        priority === p
-                          ? priorityPillClasses(p)
+                        visibility === p
+                          ? visibilityPillClasses(p)
                           : 'border-transparent opacity-50 hover:opacity-80',
                       )}
                       style={
-                        priority !== p
+                        visibility !== p
                           ? { color: 'var(--theme-muted)' }
                           : undefined
                       }
                     >
-                      {PRIORITY_LABELS[p]}
+                      {VISIBILITY_LABELS[p]}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Labels */}
+              {/* Complete By */}
               <div>
                 <label
                   className="mb-1 block text-xs font-medium"
                   style={{ color: 'var(--theme-muted)' }}
                 >
-                  Labels (comma-separated)
+                  Complete By
                 </label>
                 <Input
-                  value={labelsInput}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setLabelsInput(e.target.value)
-                  }
-                  placeholder="bug, feature, urgent"
+                  nativeInput
+                  type="date"
+                  value={completeBy}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompleteBy(e.target.value)}
                 />
               </div>
 
@@ -342,13 +335,33 @@ export function TaskDetailDrawer({
               </div>
 
               {/* Feedback */}
+              <div>
+                <label
+                  className="mb-1 block text-xs font-medium"
+                  style={{ color: 'var(--theme-muted)' }}
+                >
+                  Comment
+                </label>
+                <textarea
+                  className="w-full resize-none rounded-lg border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-blue-500/30"
+                  style={{
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)',
+                  }}
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a comment to the task history..."
+                />
+              </div>
+
               {task.feedback.length > 0 && (
                 <div>
                   <label
                     className="mb-1 block text-xs font-medium"
                     style={{ color: 'var(--theme-muted)' }}
                   >
-                    Feedback
+                    Comments
                   </label>
                   <div className="flex flex-col gap-2">
                     {task.feedback.map((fb, i) => (

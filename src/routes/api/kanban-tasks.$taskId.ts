@@ -3,7 +3,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
-import { updateTask, deleteTask, getTaskVersion, KanbanError } from '../../server/kanban-store'
+import { updateTask, deleteTask, KanbanError } from '../../server/kanban-store'
 
 export const Route = createFileRoute('/api/kanban-tasks/$taskId')({
   server: {
@@ -14,19 +14,23 @@ export const Route = createFileRoute('/api/kanban-tasks/$taskId')({
         }
         try {
           const body = await request.json()
-          // Version is optional — auto-populate from current state if not provided
-          const version = typeof body.version === 'number'
-            ? body.version
-            : await getTaskVersion(params.taskId)
+          if (typeof body.version !== 'number') {
+            return new Response(JSON.stringify({ error: 'version is required' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          }
           const task = await updateTask(params.taskId, {
             title: body.title,
             description: body.description,
             status: body.status,
-            priority: body.priority,
+            visibility: body.visibility,
             assignee: body.assignee,
             labels: body.labels,
-            version,
+            dueAt: body.dueAt,
+            version: body.version,
             sessionId: body.sessionId,
+            comment: body.comment,
             agentStatus: body.agentStatus,
             agentSummary: body.agentSummary,
             spawnedFrom: body.spawnedFrom,

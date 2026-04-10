@@ -15,12 +15,12 @@ import { randomUUID } from 'node:crypto'
 // ─── Types ───────────────────────────────────────────────────────────
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done' | 'cancelled'
-export type TaskPriority = 'critical' | 'high' | 'normal' | 'low'
+export type TaskVisibility = 'yes' | 'no' | 'somewhat'
 export type TaskActor = 'operator' | `agent:${string}`
 
 export interface KanbanBoardConfig {
   columns: Array<{ key: TaskStatus; title: string; wipLimit?: number; visible: boolean }>
-  defaults: { status: TaskStatus; priority: TaskPriority }
+  defaults: { status: TaskStatus; visibility: TaskVisibility }
   reviewRequired: boolean
   allowDoneDragBypass: boolean
   quickViewLimit: number
@@ -44,7 +44,7 @@ export interface KanbanTask {
   title: string
   description?: string
   status: TaskStatus
-  priority: TaskPriority
+  visibility: TaskVisibility
   createdBy: TaskActor
   createdAt: number
   updatedAt: number
@@ -53,6 +53,7 @@ export interface KanbanTask {
   labels: string[]
   columnOrder: number
   feedback: Array<{ at: number; by: TaskActor; note: string }>
+  dueAt?: number | null
   sessionId?: string
   agentStatus?: AgentStatus
   agentSummary?: string
@@ -67,7 +68,7 @@ export interface KanbanData {
 export interface TaskFilters {
   boardId?: string
   status?: TaskStatus
-  priority?: TaskPriority[]
+  visibility?: TaskVisibility[]
   q?: string
   limit?: number
   offset?: number
@@ -87,7 +88,7 @@ const DEFAULT_BOARD_CONFIG: KanbanBoardConfig = {
     { key: 'done', title: 'Done', visible: true },
     { key: 'cancelled', title: 'Cancelled', visible: false },
   ],
-  defaults: { status: 'todo', priority: 'normal' },
+  defaults: { status: 'todo', visibility: 'no' },
   reviewRequired: false,
   allowDoneDragBypass: false,
   quickViewLimit: 50,
@@ -127,10 +128,54 @@ async function ensureDir(): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true })
 }
 
+function normalizeVisibility(value: unknown): TaskVisibility {
+  return value === 'yes' || value === 'somewhat' || value === 'no' ? value : 'no'
+}
+
+function normalizeStatus(value: unknown): TaskStatus {
+  return value === 'backlog' ||
+    value === 'todo' ||
+    value === 'in-progress' ||
+    value === 'review' ||
+    value === 'done' ||
+    value === 'cancelled'
+    ? value
+    : DEFAULT_BOARD_CONFIG.defaults.status
+}
+
+function normalizeData(data: KanbanData): KanbanData {
+  return {
+    boards: data.boards.map((board) => ({
+      ...board,
+      config: {
+        ...DEFAULT_BOARD_CONFIG,
+        ...board.config,
+        defaults: {
+          ...DEFAULT_BOARD_CONFIG.defaults,
+          ...board.config?.defaults,
+          status: normalizeStatus(board.config?.defaults?.status),
+          visibility: normalizeVisibility(
+            board.config?.defaults?.visibility ?? (board.config?.defaults as { priority?: unknown } | undefined)?.priority,
+          ),
+        },
+      },
+    })),
+    tasks: data.tasks.map((task) => ({
+      ...task,
+      status: normalizeStatus(task.status),
+      visibility: normalizeVisibility(
+        task.visibility ?? (task as KanbanTask & { priority?: unknown }).priority,
+      ),
+      labels: task.labels ?? [],
+      feedback: task.feedback ?? [],
+    })),
+  }
+}
+
 async function readData(): Promise<KanbanData> {
   try {
     const raw = await fs.readFile(DATA_FILE, 'utf-8')
-    return JSON.parse(raw) as KanbanData
+    return normalizeData(JSON.parse(raw) as KanbanData)
   } catch (err: any) {
     if (err.code === 'ENOENT') {
       // First access — create default data and persist it
@@ -288,8 +333,8 @@ export async function listTasks(filters: TaskFilters = {}): Promise<{ tasks: Kan
     if (filters.status) {
       tasks = tasks.filter((t) => t.status === filters.status)
     }
-    if (filters.priority && filters.priority.length > 0) {
-      tasks = tasks.filter((t) => filters.priority!.includes(t.priority))
+    if (filters.visibility && filters.visibility.length > 0) {
+      tasks = tasks.filter((t) => filters.visibility!.includes(t.visibility))
     }
     if (filters.q) {
       const q = filters.q.toLowerCase()
@@ -318,7 +363,7 @@ export interface CreateTaskInput {
   title: string
   description?: string
   status?: TaskStatus
-  priority?: TaskPriority
+  visibility?: TaskVisibility
   createdBy?: TaskActor
   assignee?: TaskActor
   labels?: string[]
@@ -331,7 +376,7 @@ export async function createTask(input: CreateTaskInput): Promise<KanbanTask> {
 
     const now = Date.now()
     const status = input.status ?? board.config.defaults.status
-    const priority = input.priority ?? board.config.defaults.priority
+    const visibility = input.visibility ?? board.config.defaults.visibility
 
     // Calculate max columnOrder for the target status
     const maxOrder = data.tasks
@@ -344,7 +389,7 @@ export async function createTask(input: CreateTaskInput): Promise<KanbanTask> {
       title: input.title,
       description: input.description,
       status,
-      priority,
+      visibility,
       createdBy: input.createdBy ?? 'operator',
       createdAt: now,
       updatedAt: now,
@@ -363,9 +408,11 @@ export interface UpdateTaskInput {
   title?: string
   description?: string
   status?: TaskStatus
-  priority?: TaskPriority
+  visibility?: TaskVisibility
   assignee?: TaskActor | null
   labels?: string[]
+  dueAt?: number | null
+  comment?: string
   version: number // Required for CAS
   sessionId?: string
   agentStatus?: AgentStatus
@@ -400,9 +447,16 @@ export async function updateTask(taskId: string, input: UpdateTaskInput): Promis
       }
       task.status = input.status
     }
-    if (input.priority !== undefined) task.priority = input.priority
+    if (input.visibility !== undefined) task.visibility = input.visibility
     if (input.assignee !== undefined) task.assignee = input.assignee ?? undefined
     if (input.labels !== undefined) task.labels = input.labels
+    if (input.dueAt !== undefined) {
+      if (input.dueAt === null) delete task.dueAt
+      else task.dueAt = input.dueAt
+    }
+    if (input.comment !== undefined && input.comment.trim()) {
+      task.feedback.push({ at: now, by: 'operator', note: input.comment.trim() })
+    }
     if (input.sessionId !== undefined) task.sessionId = input.sessionId
     if (input.agentStatus !== undefined) task.agentStatus = input.agentStatus
     if (input.agentSummary !== undefined) task.agentSummary = input.agentSummary
@@ -500,24 +554,5 @@ export class KanbanError extends Error {
   ) {
     super(message)
     this.name = 'KanbanError'
-  }
-}
-
-// ─── Init helper (ensure data file exists) ──────────────────────────
-
-export async function ensureKanbanStore(): Promise<void> {
-  const release = await mutex.acquire()
-  try {
-    await ensureDir()
-    try {
-      await fs.access(DATA_FILE)
-    } catch {
-      const data = createDefaultData()
-      const tmpFile = DATA_FILE + '.tmp'
-      await fs.writeFile(tmpFile, JSON.stringify(data, null, 2), 'utf-8')
-      await fs.rename(tmpFile, DATA_FILE)
-    }
-  } finally {
-    release()
   }
 }

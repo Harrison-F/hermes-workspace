@@ -3,7 +3,7 @@ import type {
   KanbanBoard,
   KanbanBoardConfig,
   KanbanTask,
-  TaskPriority,
+  TaskVisibility,
   TaskStatus,
 } from '../types'
 
@@ -62,7 +62,9 @@ async function fetchTasks(boardId: string): Promise<KanbanTask[]> {
 }
 
 async function createTask(
-  data: Pick<KanbanTask, 'boardId' | 'title' | 'description' | 'status' | 'priority' | 'labels'>,
+  data: Pick<KanbanTask, 'boardId' | 'title' | 'description' | 'status' | 'visibility'> & {
+    labels?: string[]
+  },
 ): Promise<KanbanTask> {
   return apiFetch<KanbanTask>('/api/kanban-tasks', {
     method: 'POST',
@@ -75,9 +77,21 @@ async function updateTask(
   patch: Partial<
     Pick<
       KanbanTask,
-      'title' | 'description' | 'status' | 'priority' | 'assignee' | 'labels' | 'columnOrder' | 'dueAt'
+      | 'title'
+      | 'description'
+      | 'status'
+      | 'visibility'
+      | 'assignee'
+      | 'labels'
+      | 'columnOrder'
+      | 'dueAt'
+      | 'sessionId'
+      | 'agentStatus'
+      | 'agentSummary'
+      | 'spawnedFrom'
+      | 'comment'
     >
-  >,
+  > & { version: number },
 ): Promise<KanbanTask> {
   return apiFetch<KanbanTask>(`/api/kanban-tasks/${id}`, {
     method: 'PATCH',
@@ -93,10 +107,11 @@ async function reorderTask(
   id: string,
   status: TaskStatus,
   columnOrder: number,
+  version: number,
 ): Promise<KanbanTask> {
   return apiFetch<KanbanTask>(`/api/kanban-tasks/${id}/reorder`, {
     method: 'POST',
-    body: JSON.stringify({ status, columnOrder }),
+    body: JSON.stringify({ status, columnOrder, version }),
   })
 }
 
@@ -105,14 +120,14 @@ async function reorderTask(
 export interface KanbanFilters {
   search: string
   statuses: TaskStatus[]
-  priorities: TaskPriority[]
+  visibilities: TaskVisibility[]
   labels: string[]
 }
 
 const emptyFilters: KanbanFilters = {
   search: '',
   statuses: [],
-  priorities: [],
+  visibilities: [],
   labels: [],
 }
 
@@ -127,7 +142,7 @@ function matchesFilters(task: KanbanTask, filters: KanbanFilters): boolean {
   if (filters.statuses.length > 0 && !filters.statuses.includes(task.status)) {
     return false
   }
-  if (filters.priorities.length > 0 && !filters.priorities.includes(task.priority)) {
+  if (filters.visibilities.length > 0 && !filters.visibilities.includes(task.visibility)) {
     return false
   }
   if (filters.labels.length > 0 && !filters.labels.some((l) => task.labels.includes(l))) {
@@ -153,14 +168,28 @@ export interface UseKanbanReturn {
   tasks: KanbanTask[]
   filteredTasks: KanbanTask[]
   createTask: (
-    data: Pick<KanbanTask, 'boardId' | 'title' | 'description' | 'status' | 'priority' | 'labels'>,
+    data: Pick<KanbanTask, 'boardId' | 'title' | 'description' | 'status' | 'visibility'> & {
+      labels?: string[]
+    },
   ) => Promise<void>
   updateTask: (
     id: string,
     patch: Partial<
       Pick<
         KanbanTask,
-        'title' | 'description' | 'status' | 'priority' | 'assignee' | 'labels' | 'columnOrder' | 'dueAt'
+        | 'title'
+        | 'description'
+        | 'status'
+        | 'visibility'
+        | 'assignee'
+        | 'labels'
+        | 'columnOrder'
+        | 'dueAt'
+        | 'sessionId'
+        | 'agentStatus'
+        | 'agentSummary'
+        | 'spawnedFrom'
+        | 'comment'
       >
     >,
   ) => Promise<void>
@@ -309,10 +338,9 @@ export function useKanban(): UseKanbanReturn {
 
   const handleCreateTask = useCallback(
     async (
-      data: Pick<
-        KanbanTask,
-        'boardId' | 'title' | 'description' | 'status' | 'priority' | 'labels'
-      >,
+      data: Pick<KanbanTask, 'boardId' | 'title' | 'description' | 'status' | 'visibility'> & {
+        labels?: string[]
+      },
     ) => {
       const task = await createTask(data)
       setTasks((prev) => [...prev, task])
@@ -329,18 +357,25 @@ export function useKanban(): UseKanbanReturn {
           | 'title'
           | 'description'
           | 'status'
-          | 'priority'
+          | 'visibility'
           | 'assignee'
           | 'labels'
           | 'columnOrder'
           | 'dueAt'
+          | 'sessionId'
+          | 'agentStatus'
+          | 'agentSummary'
+          | 'spawnedFrom'
+          | 'comment'
         >
       >,
     ) => {
-      const updated = await updateTask(id, patch)
+      const currentTask = tasks.find((task) => task.id === id)
+      if (!currentTask) throw new Error(`Task not found: ${id}`)
+      const updated = await updateTask(id, { ...patch, version: currentTask.version })
       setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
     },
-    [],
+    [tasks],
   )
 
   const handleDeleteTask = useCallback(async (id: string) => {
@@ -350,19 +385,22 @@ export function useKanban(): UseKanbanReturn {
 
   const handleReorderTask = useCallback(
     async (id: string, status: TaskStatus, columnOrder: number) => {
+      const currentTask = tasks.find((task) => task.id === id)
+      if (!currentTask) throw new Error(`Task not found: ${id}`)
+
       // Optimistic update
       setTasks((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status, columnOrder } : t)),
       )
       try {
-        const updated = await reorderTask(id, status, columnOrder)
+        const updated = await reorderTask(id, status, columnOrder, currentTask.version)
         setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
       } catch {
         // Revert on error — reload
         if (activeBoardId) loadTasks(activeBoardId)
       }
     },
-    [activeBoardId, loadTasks],
+    [activeBoardId, loadTasks, tasks],
   )
 
   const resetFilters = useCallback(() => setFilters(emptyFilters), [])

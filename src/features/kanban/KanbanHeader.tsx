@@ -7,10 +7,10 @@ import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { KanbanBoard, TaskPriority, TaskStatus } from './types'
-import { COLUMN_LABELS } from './types'
+import type { KanbanBoard, TaskVisibility, TaskStatus } from './types'
+import { COLUMN_LABELS, VISIBILITY_LABELS } from './types'
 import type { KanbanFilters } from './hooks/useKanban'
-import { priorityPillClasses, statusPillClasses } from './tone'
+import { visibilityPillClasses, statusPillClasses } from './tone'
 
 interface KanbanHeaderProps {
   boards: KanbanBoard[]
@@ -30,13 +30,7 @@ const STATUS_OPTIONS: TaskStatus[] = [
   'review',
   'done',
 ]
-const PRIORITY_OPTIONS: TaskPriority[] = ['critical', 'high', 'normal', 'low']
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
-}
+const VISIBILITY_OPTIONS: TaskVisibility[] = ['yes', 'no', 'somewhat']
 
 export function KanbanHeader({
   boards,
@@ -53,7 +47,7 @@ export function KanbanHeader({
   const hasActiveFilters =
     filters.search !== '' ||
     filters.statuses.length > 0 ||
-    filters.priorities.length > 0 ||
+    filters.visibilities.length > 0 ||
     filters.labels.length > 0
 
   const toggleStatus = (s: TaskStatus) => {
@@ -65,12 +59,12 @@ export function KanbanHeader({
     })
   }
 
-  const togglePriority = (p: TaskPriority) => {
+  const toggleVisibility = (p: TaskVisibility) => {
     onFiltersChange({
       ...filters,
-      priorities: filters.priorities.includes(p)
-        ? filters.priorities.filter((x) => x !== p)
-        : [...filters.priorities, p],
+      visibilities: filters.visibilities.includes(p)
+        ? filters.visibilities.filter((x) => x !== p)
+        : [...filters.visibilities, p],
     })
   }
 
@@ -184,26 +178,26 @@ export function KanbanHeader({
           ))}
 
           <span className="ml-2 font-medium" style={{ color: 'var(--theme-muted)' }}>
-            Priority:
+            Visibility:
           </span>
-          {PRIORITY_OPTIONS.map((p) => (
+          {VISIBILITY_OPTIONS.map((p) => (
             <button
               key={p}
               type="button"
-              onClick={() => togglePriority(p)}
+              onClick={() => toggleVisibility(p)}
               className={cn(
                 'rounded-md border px-2 py-0.5 transition-colors',
-                filters.priorities.includes(p)
-                  ? priorityPillClasses(p)
+                filters.visibilities.includes(p)
+                  ? visibilityPillClasses(p)
                   : 'border-transparent opacity-50 hover:opacity-80',
               )}
               style={
-                !filters.priorities.includes(p)
+                !filters.visibilities.includes(p)
                   ? { color: 'var(--theme-muted)' }
                   : undefined
               }
             >
-              {PRIORITY_LABELS[p]}
+              {VISIBILITY_LABELS[p]}
             </button>
           ))}
 

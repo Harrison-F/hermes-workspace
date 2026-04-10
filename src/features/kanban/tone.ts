@@ -1,7 +1,7 @@
-import type { TaskPriority, TaskStatus } from './types'
+import type { TaskStatus, TaskVisibility } from './types'
 
 /**
- * Tone helpers — maps task statuses and priorities to Tailwind color classes.
+ * Tone helpers — maps task statuses and visibility states to Tailwind color classes.
  * Uses standard Tailwind classes compatible with Hermes theme (CSS variable based).
  */
 
@@ -33,26 +33,29 @@ const STATUS_BORDER: Record<TaskStatus, string> = {
   cancelled: 'border-red-500/30',
 }
 
-// --- Priority colors ---
-const PRIORITY_TEXT: Record<TaskPriority, string> = {
-  critical: 'text-red-500',
-  high: 'text-orange-500',
-  normal: 'text-blue-500',
-  low: 'text-gray-500',
+// --- Visibility colors ---
+const VISIBILITY_TEXT: Record<TaskVisibility, string> = {
+  yes: 'text-blue-500',
+  somewhat: 'text-orange-500',
+  no: 'text-gray-500',
 }
 
-const PRIORITY_BG: Record<TaskPriority, string> = {
-  critical: 'bg-red-500/10',
-  high: 'bg-orange-500/10',
-  normal: 'bg-blue-500/10',
-  low: 'bg-gray-500/10',
+const VISIBILITY_BG: Record<TaskVisibility, string> = {
+  yes: 'bg-blue-500/10',
+  somewhat: 'bg-orange-500/10',
+  no: 'bg-gray-500/10',
 }
 
-const PRIORITY_BORDER: Record<TaskPriority, string> = {
-  critical: 'border-red-500/30',
-  high: 'border-orange-500/30',
-  normal: 'border-blue-500/30',
-  low: 'border-gray-500/30',
+const VISIBILITY_BORDER: Record<TaskVisibility, string> = {
+  yes: 'border-blue-500/30',
+  somewhat: 'border-orange-500/30',
+  no: 'border-gray-500/30',
+}
+
+export const CARD_VISIBILITY_OUTLINE: Record<TaskVisibility, string> = {
+  yes: 'border-blue-500/70',
+  somewhat: 'border-orange-500/70',
+  no: 'border-transparent',
 }
 
 export function statusTextClass(status: TaskStatus): string {
@@ -67,16 +70,16 @@ export function statusBorderClass(status: TaskStatus): string {
   return STATUS_BORDER[status] ?? 'border-gray-500/30'
 }
 
-export function priorityTextClass(priority: TaskPriority): string {
-  return PRIORITY_TEXT[priority] ?? 'text-gray-500'
+export function visibilityTextClass(visibility: TaskVisibility): string {
+  return VISIBILITY_TEXT[visibility] ?? 'text-gray-500'
 }
 
-export function priorityBgClass(priority: TaskPriority): string {
-  return PRIORITY_BG[priority] ?? 'bg-gray-500/10'
+export function visibilityBgClass(visibility: TaskVisibility): string {
+  return VISIBILITY_BG[visibility] ?? 'bg-gray-500/10'
 }
 
-export function priorityBorderClass(priority: TaskPriority): string {
-  return PRIORITY_BORDER[priority] ?? 'border-gray-500/30'
+export function visibilityBorderClass(visibility: TaskVisibility): string {
+  return VISIBILITY_BORDER[visibility] ?? 'border-gray-500/30'
 }
 
 /** Combined pill classes for a status badge */
@@ -84,7 +87,7 @@ export function statusPillClasses(status: TaskStatus): string {
   return `${STATUS_TEXT[status]} ${STATUS_BG[status]} ${STATUS_BORDER[status]}`
 }
 
-/** Combined pill classes for a priority badge */
-export function priorityPillClasses(priority: TaskPriority): string {
-  return `${PRIORITY_TEXT[priority]} ${PRIORITY_BG[priority]} ${PRIORITY_BORDER[priority]}`
+/** Combined pill classes for a visibility badge */
+export function visibilityPillClasses(visibility: TaskVisibility): string {
+  return `${VISIBILITY_TEXT[visibility]} ${VISIBILITY_BG[visibility]} ${VISIBILITY_BORDER[visibility]}`
 }

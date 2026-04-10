@@ -1,19 +1,11 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { HugeiconsIcon } from '@hugeicons/react'
-import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import { cn } from '@/lib/utils'
-import type { KanbanTask, TaskPriority } from './types'
-import { priorityPillClasses } from './tone'
+import { VISIBILITY_LABELS, type KanbanTask } from './types'
+import { CARD_VISIBILITY_OUTLINE, visibilityPillClasses } from './tone'
 
 export const SHOW_STATUS_ICON_ON_CARD = false
-
-const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
-}
+export const KANBAN_CARD_CONTEXT_ATTR = 'data-task-id'
 
 interface KanbanCardProps {
   task: KanbanTask
@@ -39,12 +31,12 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
     transition,
     opacity: isDragging ? 0.4 : undefined,
     background: 'var(--theme-panel)',
-    borderColor: 'var(--theme-border)',
   }
 
   return (
     <div
       ref={setNodeRef}
+      data-task-id={task.id}
       style={style}
       {...attributes}
       {...listeners}
@@ -56,7 +48,8 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
       }}
       className={cn(
         'cursor-grab rounded-lg border p-3 text-sm transition-shadow select-none',
-        'hover:shadow-md',
+        'border-[1.5px] hover:shadow-md',
+        CARD_VISIBILITY_OUTLINE[task.visibility],
         overlay && 'rotate-2 shadow-xl',
       )}
     >
@@ -70,14 +63,14 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 
       {/* Meta row */}
       <div className="mt-2 flex items-center gap-2 text-xs">
-        {/* Priority badge */}
+        {/* Visibility badge */}
         <span
           className={cn(
             'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none',
-            priorityPillClasses(task.priority),
+            visibilityPillClasses(task.visibility),
           )}
         >
-          {PRIORITY_LABEL[task.priority]}
+          {VISIBILITY_LABELS[task.visibility]}
         </span>
 
         {/* Labels */}
@@ -94,12 +87,8 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 
       {/* Due date */}
       {task.dueAt && (
-        <div
-          className="mt-1.5 flex items-center gap-1 text-[10px]"
-          style={{ color: 'var(--theme-muted)' }}
-        >
-          <HugeiconsIcon icon={Clock01Icon} size={12} />
-          <span>{new Date(task.dueAt).toLocaleDateString()}</span>
+        <div className="mt-1.5 text-[10px]" style={{ color: 'var(--theme-muted)' }}>
+          {new Date(task.dueAt).toLocaleDateString()}
         </div>
       )}
     </div>

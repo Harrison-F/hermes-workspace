@@ -1,5 +1,5 @@
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done' | 'cancelled'
-export type TaskPriority = 'critical' | 'high' | 'normal' | 'low'
+export type TaskVisibility = 'yes' | 'no' | 'somewhat'
 export const COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in-progress', 'review', 'done']
 export const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -9,6 +9,11 @@ export const COLUMN_LABELS: Record<TaskStatus, string> = {
   done: 'Done',
   cancelled: 'Cancelled',
 }
+export const VISIBILITY_LABELS: Record<TaskVisibility, string> = {
+  yes: 'Yes',
+  no: 'No',
+  somewhat: 'Somewhat',
+}
 export type TaskActor = 'operator' | `agent:${string}`
 export interface KanbanBoardConfig {
   columns: Array<{
@@ -17,7 +22,7 @@ export interface KanbanBoardConfig {
     wipLimit?: number
     visible: boolean
   }>
-  defaults: { status: TaskStatus; priority: TaskPriority }
+  defaults: { status: TaskStatus; visibility: TaskVisibility }
   reviewRequired: boolean
   allowDoneDragBypass: boolean
   quickViewLimit: number
@@ -39,12 +44,13 @@ export interface TaskFeedback {
 export type AgentStatus = 'idle' | 'working' | 'needs-input' | 'done' | 'error'
 
 export interface KanbanTask {
+  comment?: string
   id: string
   boardId: string
   title: string
   description?: string
   status: TaskStatus
-  priority: TaskPriority
+  visibility: TaskVisibility
   createdBy: TaskActor
   createdAt: number
   updatedAt: number
@@ -52,7 +58,7 @@ export interface KanbanTask {
   assignee?: TaskActor
   labels: string[]
   columnOrder: number
-  dueAt?: number
+  dueAt?: number | null
   feedback: TaskFeedback[]
   sessionId?: string
   agentStatus?: AgentStatus
