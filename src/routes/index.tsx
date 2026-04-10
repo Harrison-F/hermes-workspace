@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 export const Route = createFileRoute('/')({
   beforeLoad: function redirectToChat() {
     throw redirect({
-      to: '/chat' as string,
+      to: '/board' as string,
       replace: true,
     })
   },
