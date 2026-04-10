@@ -19,6 +19,7 @@ interface KanbanBoardProps {
   config?: KanbanBoardConfig
   onTaskClick?: (task: KanbanTask) => void
   onAddTask?: (status: TaskStatus) => void
+  onRenameColumn?: (status: TaskStatus, title: string) => Promise<void>
   onReorder: (id: string, status: TaskStatus, columnOrder: number) => Promise<void>
 }
 
@@ -27,6 +28,7 @@ export function KanbanBoard({
   config,
   onTaskClick,
   onAddTask,
+  onRenameColumn,
   onReorder,
 }: KanbanBoardProps) {
   const sensors = useSensors(
@@ -81,10 +83,12 @@ export function KanbanBoard({
             <KanbanColumn
               key={status}
               status={status}
+              title={colConfig?.title}
               tasks={tasksByStatus(status)}
               wipLimit={colConfig?.wipLimit}
               onTaskClick={onTaskClick}
               onAddTask={onAddTask}
+              onRenameColumn={onRenameColumn}
             />
           )
         })}

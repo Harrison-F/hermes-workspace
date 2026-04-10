@@ -1,9 +1,9 @@
 /**
- * Kanban Board API — rename or delete a single board
+ * Kanban Board API — update or delete a single board
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
-import { renameBoard, deleteBoard, KanbanError } from '../../server/kanban-store'
+import { updateBoard, deleteBoard, KanbanError } from '../../server/kanban-store'
 
 export const Route = createFileRoute('/api/kanban-boards/$boardId')({
   server: {
@@ -14,13 +14,25 @@ export const Route = createFileRoute('/api/kanban-boards/$boardId')({
         }
         try {
           const body = await request.json()
-          if (!body.name || typeof body.name !== 'string') {
-            return new Response(JSON.stringify({ error: 'name is required' }), {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
-            })
+          const hasName = typeof body.name === 'string'
+          const hasOrder = typeof body.order === 'number'
+          const hasConfig = typeof body.config === 'object' && body.config !== null
+
+          if (!hasName && !hasOrder && !hasConfig) {
+            return new Response(
+              JSON.stringify({ error: 'at least one of name, order, or config is required' }),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            )
           }
-          const board = await renameBoard(params.boardId, body.name)
+
+          const board = await updateBoard(params.boardId, {
+            name: hasName ? body.name : undefined,
+            order: hasOrder ? body.order : undefined,
+            config: hasConfig ? body.config : undefined,
+          })
           return new Response(JSON.stringify(board), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

@@ -24,6 +24,7 @@ export function KanbanPanel() {
     activeBoardId,
     setActiveBoardId,
     createBoard,
+    updateBoard,
     deleteBoard,
     tasks,
     filteredTasks,
@@ -89,6 +90,22 @@ export function KanbanPanel() {
 
   const activeBoard = boards.find((b) => b.id === activeBoardId)
 
+  const handleRenameColumn = useCallback(
+    async (status: TaskStatus, title: string) => {
+      if (!activeBoard) return
+
+      await updateBoard(activeBoard.id, {
+        config: {
+          ...activeBoard.config,
+          columns: activeBoard.config.columns.map((column) =>
+            column.key === status ? { ...column, title } : column,
+          ),
+        },
+      })
+    },
+    [activeBoard, updateBoard],
+  )
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -140,6 +157,7 @@ export function KanbanPanel() {
             config={activeBoard?.config}
             onTaskClick={handleTaskClick}
             onAddTask={handleAddTask}
+            onRenameColumn={handleRenameColumn}
             onReorder={reorderTask}
           />
         ) : (

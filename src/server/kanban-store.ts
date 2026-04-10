@@ -218,14 +218,34 @@ export async function createBoard(name: string, config?: Partial<KanbanBoardConf
   })
 }
 
-export async function renameBoard(boardId: string, name: string): Promise<KanbanBoard> {
+export interface UpdateBoardInput {
+  name?: string
+  order?: number
+  config?: KanbanBoardConfig
+}
+
+export async function updateBoard(boardId: string, input: UpdateBoardInput): Promise<KanbanBoard> {
   return withData((data) => {
     const board = data.boards.find((b) => b.id === boardId)
     if (!board) throw new KanbanError('Board not found', 404)
-    board.name = name
+
+    if (typeof input.name === 'string') {
+      board.name = input.name
+    }
+    if (typeof input.order === 'number') {
+      board.order = input.order
+    }
+    if (input.config) {
+      board.config = input.config
+    }
+
     board.updatedAt = Date.now()
     return board
   })
+}
+
+export async function renameBoard(boardId: string, name: string): Promise<KanbanBoard> {
+  return updateBoard(boardId, { name })
 }
 
 export async function deleteBoard(boardId: string): Promise<void> {

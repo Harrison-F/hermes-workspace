@@ -1,25 +1,12 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { HugeiconsIcon } from '@hugeicons/react'
-import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
-import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
-import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import { cn } from '@/lib/utils'
-import type { KanbanTask, TaskPriority, TaskStatus } from './types'
-import { priorityPillClasses, statusTextClass } from './tone'
+import type { KanbanTask, TaskPriority } from './types'
+import { priorityPillClasses } from './tone'
 
-const STATUS_ICON: Record<
-  TaskStatus,
-  typeof Clock01Icon
-> = {
-  backlog: Clock01Icon,
-  todo: Clock01Icon,
-  'in-progress': Clock01Icon,
-  review: Alert02Icon,
-  done: CheckmarkCircle02Icon,
-  cancelled: Cancel01Icon,
-}
+export const SHOW_STATUS_ICON_ON_CARD = false
 
 const PRIORITY_LABEL: Record<TaskPriority, string> = {
   critical: 'Critical',
@@ -55,8 +42,6 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
     borderColor: 'var(--theme-border)',
   }
 
-  const Icon = STATUS_ICON[task.status]
-
   return (
     <div
       ref={setNodeRef}
@@ -85,11 +70,6 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 
       {/* Meta row */}
       <div className="mt-2 flex items-center gap-2 text-xs">
-        {/* Status icon */}
-        <span className={cn('flex items-center gap-1', statusTextClass(task.status))}>
-          <HugeiconsIcon icon={Icon} size={14} />
-        </span>
-
         {/* Priority badge */}
         <span
           className={cn(
