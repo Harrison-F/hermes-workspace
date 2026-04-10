@@ -1,13 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  File01Icon,
-  Search01Icon,
-  SparklesIcon,
-} from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowUp01Icon from '@hugeicons/core-free-icons/ArrowUp01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
+import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'

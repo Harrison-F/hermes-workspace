@@ -6,11 +6,9 @@ import {
   useRef,
   useState,
 } from 'react'
-import {
-  ArrowExpand01Icon,
-  ArrowUp01Icon,
-  Robot01Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowExpand01Icon from '@hugeicons/core-free-icons/ArrowExpand01Icon'
+import ArrowUp01Icon from '@hugeicons/core-free-icons/ArrowUp01Icon'
+import Robot01Icon from '@hugeicons/core-free-icons/Robot01Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   getMessageTimestamp,

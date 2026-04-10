@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, Home01Icon } from '@hugeicons/core-free-icons'
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
+import Home01Icon from '@hugeicons/core-free-icons/Home01Icon'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { buttonVariants } from '@/components/ui/button'
 

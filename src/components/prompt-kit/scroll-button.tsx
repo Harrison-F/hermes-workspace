@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
 import type { VariantProps } from 'class-variance-authority'
 import type { buttonVariants } from '@/components/ui/button'
 import { Button } from '@/components/ui/button'

@@ -1,4 +1,4 @@
-import { Search01Icon } from '@hugeicons/core-free-icons'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import { SearchResultItem } from './search-result-item'
 import type { SearchResultItemData } from './search-result-item'
 import { EmptyState } from '@/components/empty-state'

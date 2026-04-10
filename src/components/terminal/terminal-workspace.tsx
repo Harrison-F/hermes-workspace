@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Add01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  ArrowUp02Icon,
-  Cancel01Icon,
-  ComputerTerminal01Icon,
-  Copy01Icon,
-  SidebarLeft01Icon,
-} from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
 import type { FitAddon } from 'xterm-addon-fit'
 import type * as FitAddonModule from 'xterm-addon-fit'
 import type { Terminal } from 'xterm'

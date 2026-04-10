@@ -1,13 +1,11 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Chat01Icon,
-  Clock01Icon,
-  CommandIcon,
-  File01Icon,
-  FlashIcon,
-  LanguageSkillIcon,
-  ListViewIcon,
-} from '@hugeicons/core-free-icons'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import CommandIcon from '@hugeicons/core-free-icons/CommandIcon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import FlashIcon from '@hugeicons/core-free-icons/FlashIcon'
+import LanguageSkillIcon from '@hugeicons/core-free-icons/LanguageSkillIcon'
+import ListViewIcon from '@hugeicons/core-free-icons/ListViewIcon'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'

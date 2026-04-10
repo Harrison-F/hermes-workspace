@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Copy01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import { createHighlighter } from 'shiki'
 import { formatLanguageName, normalizeLanguage, resolveLanguage } from './utils'
 import type { BundledLanguage, Highlighter } from 'shiki'

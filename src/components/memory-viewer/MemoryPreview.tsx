@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { EyeIcon } from '@hugeicons/core-free-icons'
+import EyeIcon from '@hugeicons/core-free-icons/EyeIcon'
 import { Markdown } from '@/components/prompt-kit/markdown'
 import {
   ScrollAreaCorner,

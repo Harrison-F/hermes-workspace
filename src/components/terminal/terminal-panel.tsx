@@ -6,12 +6,10 @@ import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import { SearchAddon } from 'xterm-addon-search'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Add01Icon,
-  Cancel01Icon,
-  ComputerTerminal01Icon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 

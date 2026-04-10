@@ -3,7 +3,7 @@
  * Shows in bottom-right corner. Hidden when chat panel is open.
  */
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Chat01Icon } from '@hugeicons/core-free-icons'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
 import { AnimatePresence, motion } from 'motion/react'
 import { useWorkspaceStore } from '@/stores/workspace-store'
 import { Button } from '@/components/ui/button'

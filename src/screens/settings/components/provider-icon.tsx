@@ -1,13 +1,11 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  AiBrain01Icon,
-  CloudIcon,
-  ComputerIcon,
-  FlashIcon,
-  GlobeIcon,
-  LanguageSkillIcon,
-  SourceCodeSquareIcon,
-} from '@hugeicons/core-free-icons'
+import AiBrain01Icon from '@hugeicons/core-free-icons/AiBrain01Icon'
+import CloudIcon from '@hugeicons/core-free-icons/CloudIcon'
+import ComputerIcon from '@hugeicons/core-free-icons/ComputerIcon'
+import FlashIcon from '@hugeicons/core-free-icons/FlashIcon'
+import GlobeIcon from '@hugeicons/core-free-icons/GlobeIcon'
+import LanguageSkillIcon from '@hugeicons/core-free-icons/LanguageSkillIcon'
+import SourceCodeSquareIcon from '@hugeicons/core-free-icons/SourceCodeSquareIcon'
 import type * as React from 'react'
 import { normalizeProviderId } from '@/lib/provider-catalog'
 import { cn } from '@/lib/utils'

@@ -1,10 +1,8 @@
-import {
-  ArrowLeft01Icon,
-  Cancel01Icon,
-  Copy01Icon,
-  Link01Icon,
-  Tick02Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import Link01Icon from '@hugeicons/core-free-icons/Link01Icon'
+import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useRef, useState } from 'react'
 import { ProviderIcon } from './provider-icon'

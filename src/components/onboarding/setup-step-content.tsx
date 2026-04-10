@@ -3,13 +3,11 @@
 import { Link } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Alert02Icon,
-  Cancel01Icon,
-  CheckmarkCircle02Icon,
-  RefreshIcon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import RefreshIcon from '@hugeicons/core-free-icons/RefreshIcon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import type { OnboardingStepComponentProps } from './onboarding-steps'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'

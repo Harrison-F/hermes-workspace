@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { PlusSignIcon } from '@hugeicons/core-free-icons'
+import PlusSignIcon from '@hugeicons/core-free-icons/PlusSignIcon'
 
 import { Button } from '@/components/ui/button'
 

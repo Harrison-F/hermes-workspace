@@ -7,11 +7,9 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowExpand01Icon,
-  Cancel01Icon,
-  PencilEdit02Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowExpand01Icon from '@hugeicons/core-free-icons/ArrowExpand01Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import PencilEdit02Icon from '@hugeicons/core-free-icons/PencilEdit02Icon'
 import { AnimatePresence, motion } from 'motion/react'
 import type { SessionMeta } from '@/screens/chat/types'
 import { ChatScreen } from '@/screens/chat/chat-screen'

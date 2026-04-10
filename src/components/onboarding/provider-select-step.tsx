@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  Alert02Icon,
-  CheckmarkCircle02Icon,
-  Copy01Icon,
-  ViewIcon,
-  ViewOffIcon,
-} from '@hugeicons/core-free-icons'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import ViewIcon from '@hugeicons/core-free-icons/ViewIcon'
+import ViewOffIcon from '@hugeicons/core-free-icons/ViewOffIcon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'

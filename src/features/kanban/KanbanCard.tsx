@@ -1,12 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Alert02Icon,
-  Cancel01Icon,
-  CheckmarkCircle02Icon,
-  Clock01Icon,
-} from '@hugeicons/core-free-icons'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import { cn } from '@/lib/utils'
 import type { KanbanTask, TaskPriority, TaskStatus } from './types'
 import { priorityPillClasses, statusTextClass } from './tone'

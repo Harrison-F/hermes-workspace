@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Alert02Icon, WifiDisconnected01Icon } from '@hugeicons/core-free-icons'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
+import WifiDisconnected01Icon from '@hugeicons/core-free-icons/WifiDisconnected01Icon'
 import { cn } from '@/lib/utils'
 
 type ConnectionStatusMessageProps = {

@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Copy01Icon,
-  RefreshIcon,
-  Tick02Icon,
-} from '@hugeicons/core-free-icons'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import RefreshIcon from '@hugeicons/core-free-icons/RefreshIcon'
+import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import { MessageTimestamp } from './message-timestamp'
 import {
   TooltipContent,

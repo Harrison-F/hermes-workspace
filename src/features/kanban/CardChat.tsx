@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { SentIcon, Loading03Icon } from '@hugeicons/core-free-icons'
+import SentIcon from '@hugeicons/core-free-icons/SentIcon'
+import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
 import { Button } from '@/components/ui/button'
 
 interface Message {

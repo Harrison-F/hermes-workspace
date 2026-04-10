@@ -1,18 +1,16 @@
 'use client'
 
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowLeft01Icon,
-  Cancel01Icon,
-  CheckmarkCircle02Icon,
-  CloudIcon,
-  ComputerIcon,
-  MessageMultiple01Icon,
-  Moon01Icon,
-  Notification03Icon,
-  PaintBoardIcon,
-  Sun01Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import CloudIcon from '@hugeicons/core-free-icons/CloudIcon'
+import ComputerIcon from '@hugeicons/core-free-icons/ComputerIcon'
+import MessageMultiple01Icon from '@hugeicons/core-free-icons/MessageMultiple01Icon'
+import Moon01Icon from '@hugeicons/core-free-icons/Moon01Icon'
+import Notification03Icon from '@hugeicons/core-free-icons/Notification03Icon'
+import PaintBoardIcon from '@hugeicons/core-free-icons/PaintBoardIcon'
+import Sun01Icon from '@hugeicons/core-free-icons/Sun01Icon'
 import { Component, useCallback, useEffect, useState } from 'react'
 import type * as React from 'react'
 import type { AccentColor, SettingsThemeMode } from '@/hooks/use-settings'

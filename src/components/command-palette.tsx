@@ -3,16 +3,14 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  BrainIcon,
-  Chat01Icon,
-  CommandLineIcon,
-  File01Icon,
-  PuzzleIcon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowUp01Icon from '@hugeicons/core-free-icons/ArrowUp01Icon'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
+import CommandLineIcon from '@hugeicons/core-free-icons/CommandLineIcon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import type React from 'react'
 import type { SessionMeta } from '@/screens/chat/types'
 import {

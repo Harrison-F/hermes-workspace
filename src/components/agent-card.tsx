@@ -1,4 +1,5 @@
-import { Cancel01Icon, CheckmarkCircle01Icon } from '@hugeicons/core-free-icons'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import CheckmarkCircle01Icon from '@hugeicons/core-free-icons/CheckmarkCircle01Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'

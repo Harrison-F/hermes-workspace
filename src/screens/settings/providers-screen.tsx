@@ -1,10 +1,8 @@
-import {
-  Add01Icon,
-  CheckmarkCircle02Icon,
-  Delete02Icon,
-  Edit01Icon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
+import Edit01Icon from '@hugeicons/core-free-icons/Edit01Icon'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 
 /**
  * Strip the provider prefix that hermes-agent adds internally via litellm.

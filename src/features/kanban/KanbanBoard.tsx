@@ -7,7 +7,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { LayoutGridIcon } from '@hugeicons/core-free-icons'
+import LayoutGridIcon from '@hugeicons/core-free-icons/LayoutGridIcon'
 import type { KanbanBoardConfig, KanbanTask, TaskStatus } from './types'
 import { COLUMNS } from './types'
 import { useKanbanDragDrop } from './hooks/useKanbanDragDrop'

@@ -4,18 +4,16 @@ import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Add01Icon,
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  Clock01Icon,
-  Delete01Icon,
-  PauseIcon,
-  PencilEdit02Icon,
-  PlayIcon,
-  RefreshIcon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowUp01Icon from '@hugeicons/core-free-icons/ArrowUp01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import Delete01Icon from '@hugeicons/core-free-icons/Delete01Icon'
+import PauseIcon from '@hugeicons/core-free-icons/PauseIcon'
+import PencilEdit02Icon from '@hugeicons/core-free-icons/PencilEdit02Icon'
+import PlayIcon from '@hugeicons/core-free-icons/PlayIcon'
+import RefreshIcon from '@hugeicons/core-free-icons/RefreshIcon'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import { CreateJobDialog } from './create-job-dialog'
 import { EditJobDialog } from './edit-job-dialog'
 import type {HermesJob} from '@/lib/jobs-api';

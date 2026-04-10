@@ -1,16 +1,14 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  BrainIcon,
-  Chat01Icon,
-  Clock01Icon,
-  Task01Icon,
-  CommandLineIcon,
-  DashboardSquare01Icon,
-  File01Icon,
-  PuzzleIcon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import Task01Icon from '@hugeicons/core-free-icons/Task01Icon'
+import CommandLineIcon from '@hugeicons/core-free-icons/CommandLineIcon'
+import DashboardSquare01Icon from '@hugeicons/core-free-icons/DashboardSquare01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { TouchEvent } from 'react'
 import { cn } from '@/lib/utils'

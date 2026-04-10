@@ -1,13 +1,11 @@
 import { createPortal } from 'react-dom'
-import {
-  Add01Icon,
-  ArrowDown01Icon,
-  ArrowUp02Icon,
-  Cancel01Icon,
-  Delete01Icon,
-  Mic01Icon,
-  StopIcon,
-} from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import Delete01Icon from '@hugeicons/core-free-icons/Delete01Icon'
+import Mic01Icon from '@hugeicons/core-free-icons/Mic01Icon'
+import StopIcon from '@hugeicons/core-free-icons/StopIcon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {

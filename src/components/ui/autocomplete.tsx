@@ -2,7 +2,8 @@
 
 import { Autocomplete as AutocompletePrimitive } from '@base-ui/react/autocomplete'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowUpDownIcon, Cancel01Icon } from '@hugeicons/core-free-icons'
+import ArrowUpDownIcon from '@hugeicons/core-free-icons/ArrowUpDownIcon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'

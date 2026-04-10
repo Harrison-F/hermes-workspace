@@ -1,9 +1,7 @@
-import {
-  CheckmarkCircle02Icon,
-  Home01Icon,
-  Plug01Icon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import Home01Icon from '@hugeicons/core-free-icons/Home01Icon'
+import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import {
   ConnectionCheckStep,
   ModelConfigurationStep,

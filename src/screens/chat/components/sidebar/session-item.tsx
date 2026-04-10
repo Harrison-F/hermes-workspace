@@ -2,12 +2,10 @@
 
 import { Link } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Delete01Icon,
-  MoreHorizontalIcon,
-  Pen01Icon,
-  PinIcon,
-} from '@hugeicons/core-free-icons'
+import Delete01Icon from '@hugeicons/core-free-icons/Delete01Icon'
+import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
+import Pen01Icon from '@hugeicons/core-free-icons/Pen01Icon'
+import PinIcon from '@hugeicons/core-free-icons/PinIcon'
 import { memo, useMemo } from 'react'
 import { getMessageTimestamp } from '../../utils'
 import type { SessionMeta } from '../../types'

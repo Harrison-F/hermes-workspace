@@ -1,21 +1,21 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowDown01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  BrainIcon,
-  Chat01Icon,
-  Clock01Icon,
-  ComputerTerminal01Icon,
-  DashboardSquare01Icon,
-  File01Icon,
-  MessageMultiple01Icon,
-  Moon02Icon,
-  PencilEdit02Icon,
-  PuzzleIcon,
-
-  Search01Icon, Settings01Icon, Sun02Icon, Task01Icon 
-} from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
+import DashboardSquare01Icon from '@hugeicons/core-free-icons/DashboardSquare01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import MessageMultiple01Icon from '@hugeicons/core-free-icons/MessageMultiple01Icon'
+import Moon02Icon from '@hugeicons/core-free-icons/Moon02Icon'
+import PencilEdit02Icon from '@hugeicons/core-free-icons/PencilEdit02Icon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
+import Sun02Icon from '@hugeicons/core-free-icons/Sun02Icon'
+import Task01Icon from '@hugeicons/core-free-icons/Task01Icon'
 import { AnimatePresence, motion } from 'motion/react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'

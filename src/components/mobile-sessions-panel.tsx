@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Add01Icon, Chat01Icon } from '@hugeicons/core-free-icons'
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
 import type { SessionMeta } from '@/screens/chat/types'
 import { cn } from '@/lib/utils'
 

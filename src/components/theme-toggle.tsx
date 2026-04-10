@@ -1,4 +1,6 @@
-import { ComputerIcon, Moon01Icon, Sun01Icon } from '@hugeicons/core-free-icons'
+import ComputerIcon from '@hugeicons/core-free-icons/ComputerIcon'
+import Moon01Icon from '@hugeicons/core-free-icons/Moon01Icon'
+import Sun01Icon from '@hugeicons/core-free-icons/Sun01Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type {SettingsThemeMode} from '@/hooks/use-settings';
 import {

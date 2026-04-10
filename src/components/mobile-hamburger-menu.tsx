@@ -1,17 +1,15 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  BrainIcon,
-  Cancel01Icon,
-  Chat01Icon,
-  Clock01Icon,
-  CommandLineIcon,
-  DashboardSquare01Icon,
-  File01Icon,
-  Menu01Icon,
-  PuzzleIcon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import Chat01Icon from '@hugeicons/core-free-icons/Chat01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import CommandLineIcon from '@hugeicons/core-free-icons/CommandLineIcon'
+import DashboardSquare01Icon from '@hugeicons/core-free-icons/DashboardSquare01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import Menu01Icon from '@hugeicons/core-free-icons/Menu01Icon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { hapticTap } from '@/lib/haptics'

@@ -5,7 +5,8 @@
  */
 import { useCallback, useRef } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowUp02Icon, Copy01Icon } from '@hugeicons/core-free-icons'
+import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import { useTerminalPanelStore } from '@/stores/terminal-panel-store'
 
 async function sendToActiveTab(data: string) {

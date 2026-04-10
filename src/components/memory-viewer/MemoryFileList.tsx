@@ -1,11 +1,9 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowRight01Icon,
-  BrainIcon,
-  File01Icon,
-  Folder01Icon,
-  RefreshIcon,
-} from '@hugeicons/core-free-icons'
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
+import RefreshIcon from '@hugeicons/core-free-icons/RefreshIcon'
 import { AnimatePresence as _AnimatePresence, motion } from 'motion/react'
 import type { MemoryFileGroup, MemoryViewerFile } from './memory-types'
 import { Button } from '@/components/ui/button'

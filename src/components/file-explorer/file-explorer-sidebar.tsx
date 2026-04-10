@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowRight01Icon,
-  Delete01Icon,
-  Download01Icon,
-  File01Icon,
-  Folder01Icon,
-  Image01Icon,
-  Pen01Icon,
-  PlusSignIcon,
-  RefreshIcon,
-  Upload01Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import Delete01Icon from '@hugeicons/core-free-icons/Delete01Icon'
+import Download01Icon from '@hugeicons/core-free-icons/Download01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
+import Image01Icon from '@hugeicons/core-free-icons/Image01Icon'
+import Pen01Icon from '@hugeicons/core-free-icons/Pen01Icon'
+import PlusSignIcon from '@hugeicons/core-free-icons/PlusSignIcon'
+import RefreshIcon from '@hugeicons/core-free-icons/RefreshIcon'
+import Upload01Icon from '@hugeicons/core-free-icons/Upload01Icon'
 import FilePreviewDialog from './file-preview-dialog'
 import { cn } from '@/lib/utils'
 import {

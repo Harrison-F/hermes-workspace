@@ -1,14 +1,12 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  CheckmarkCircle02Icon,
-  CloudIcon,
-  MessageMultiple01Icon,
-  Notification03Icon,
-  PaintBoardIcon,
-  Settings02Icon,
-  SourceCodeSquareIcon,
-  UserIcon,
-} from '@hugeicons/core-free-icons'
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
+import CloudIcon from '@hugeicons/core-free-icons/CloudIcon'
+import MessageMultiple01Icon from '@hugeicons/core-free-icons/MessageMultiple01Icon'
+import Notification03Icon from '@hugeicons/core-free-icons/Notification03Icon'
+import PaintBoardIcon from '@hugeicons/core-free-icons/PaintBoardIcon'
+import Settings02Icon from '@hugeicons/core-free-icons/Settings02Icon'
+import SourceCodeSquareIcon from '@hugeicons/core-free-icons/SourceCodeSquareIcon'
+import UserIcon from '@hugeicons/core-free-icons/UserIcon'
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 import type * as React from 'react'

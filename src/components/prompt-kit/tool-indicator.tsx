@@ -1,7 +1,8 @@
 'use client'
 
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowDown01Icon, Wrench01Icon } from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import Wrench01Icon from '@hugeicons/core-free-icons/Wrench01Icon'
 import { useLayoutEffect, useState } from 'react'
 import { Tool } from './tool'
 import type { ToolPart } from './tool'

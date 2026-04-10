@@ -1,16 +1,14 @@
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  BrainIcon,
-  ComputerTerminal01Icon,
-  File01Icon,
-  MessageMultiple01Icon,
-  Moon02Icon,
-  PuzzleIcon,
-  Settings01Icon,
-  Sun02Icon,
-} from '@hugeicons/core-free-icons'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import MessageMultiple01Icon from '@hugeicons/core-free-icons/MessageMultiple01Icon'
+import Moon02Icon from '@hugeicons/core-free-icons/Moon02Icon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
+import Sun02Icon from '@hugeicons/core-free-icons/Sun02Icon'
 import type {SettingsThemeMode} from '@/hooks/use-settings';
 import { cn } from '@/lib/utils'
 import {

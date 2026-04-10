@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Cancel01Icon,
-  Clock01Icon,
-  Delete02Icon,
-  FloppyDiskIcon,
-} from '@hugeicons/core-free-icons'
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
+import FloppyDiskIcon from '@hugeicons/core-free-icons/FloppyDiskIcon'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

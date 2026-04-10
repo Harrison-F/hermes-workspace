@@ -1,9 +1,7 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  BrainIcon,
-  CodeIcon,
-  PuzzleIcon,
-} from '@hugeicons/core-free-icons'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import CodeIcon from '@hugeicons/core-free-icons/CodeIcon'
+import PuzzleIcon from '@hugeicons/core-free-icons/PuzzleIcon'
 import { motion } from 'motion/react'
 
 

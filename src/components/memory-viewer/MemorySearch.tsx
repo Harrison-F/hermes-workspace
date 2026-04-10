@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Search01Icon } from '@hugeicons/core-free-icons'
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import type { MemorySearchResult } from './memory-types'
 import { cn } from '@/lib/utils'
 

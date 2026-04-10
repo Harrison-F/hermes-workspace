@@ -1,4 +1,4 @@
-import { Alert02Icon } from '@hugeicons/core-free-icons'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 
 type Props = {

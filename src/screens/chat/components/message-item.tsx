@@ -1,8 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowDown01Icon,
-  Idea01Icon,
-} from '@hugeicons/core-free-icons'
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import Idea01Icon from '@hugeicons/core-free-icons/Idea01Icon'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   getMessageTimestamp,
