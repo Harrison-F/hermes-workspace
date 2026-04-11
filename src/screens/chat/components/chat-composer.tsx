@@ -20,22 +20,18 @@ import {
 } from 'react'
 import type { CSSProperties, Ref } from 'react'
 
+import type { ModelCatalogEntry, ModelSwitchResponse } from '@/lib/model-types'
 import type {
-  ModelCatalogEntry,
-  ModelSwitchResponse,
-} from '@/lib/model-types'
-import type {SlashCommandDefinition, SlashCommandMenuHandle} from '@/components/slash-command-menu';
+  SlashCommandDefinition,
+  SlashCommandMenuHandle,
+} from '@/components/slash-command-menu'
 import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
 } from '@/components/prompt-kit/prompt-input'
-import {
-  
-  SlashCommandMenu
-  
-} from '@/components/slash-command-menu'
+import { SlashCommandMenu } from '@/components/slash-command-menu'
 import { useSettings } from '@/hooks/use-settings'
 import { MOBILE_TAB_BAR_OFFSET } from '@/components/mobile-tab-bar'
 import { useWorkspaceStore } from '@/stores/workspace-store'
@@ -92,9 +88,6 @@ type ChatComposerHandle = {
   setValue: (value: string) => void
   insertText: (value: string) => void
 }
-
-
-
 
 function nextThinkingLevel(level: ThinkingLevel): ThinkingLevel {
   if (level === 'off') return 'low'
@@ -168,21 +161,69 @@ async function fetchModels(): Promise<{
     const richRes = await fetch('/api/hermes-proxy/api/available-models')
     if (richRes.ok) {
       const richData = (await richRes.json()) as HermesAvailableModelsResponse
-      const authenticatedProviders = (richData.providers || []).filter((p) => p.authenticated)
-      const configuredProviders = authenticatedProviders.map((p) => p.id)
-      const providerLabels = authenticatedProviders.reduce<Record<string, string>>(
-        (acc, provider) => {
-          acc[provider.id] = provider.label || provider.id
-          return acc
-        },
-        {},
+      const authenticatedProviders = (richData.providers || []).filter(
+        (p) => p.authenticated,
       )
+      const configuredProviders = authenticatedProviders.map((p) => p.id)
+      const providerLabels = authenticatedProviders.reduce<
+        Record<string, string>
+      >((acc, provider) => {
+        acc[provider.id] = provider.label || provider.id
+        return acc
+      }, {})
       const currentProvider = readModelText(richData.provider)
-      const models = (richData.models || []).map((model) => ({
+      let models = (richData.models || []).map((model) => ({
         id: model.id,
         name: model.id,
-        provider: currentProvider || undefined,
+        provider:
+          ((model as Record<string, unknown>).provider as string) ||
+          currentProvider ||
+          undefined,
       }))
+
+      // If gateway returns no models, try /v1/models as fallback
+      if (models.length === 0) {
+        try {
+          const fallbackRes = await fetch('/api/hermes-proxy/v1/models')
+          if (fallbackRes.ok) {
+            const fallbackData = (await fallbackRes.json()) as {
+              data?: Array<Record<string, unknown>>
+              models?: Array<Record<string, unknown>>
+            }
+            const rawFallback = Array.isArray(fallbackData.data)
+              ? fallbackData.data
+              : Array.isArray(fallbackData.models)
+                ? fallbackData.models
+                : []
+            models = rawFallback.map((m) => ({
+              id: readModelText(m.id) || readModelText(m.model) || 'unknown',
+              name: readModelText(m.id) || readModelText(m.model) || 'unknown',
+              provider: currentProvider || undefined,
+            }))
+          }
+        } catch {
+          /* ignore fallback failure */
+        }
+      }
+
+      // Always include current configured model so it appears in the list
+      if (currentProvider && models.length === 0) {
+        // Fetch current model from config
+        try {
+          const cfgRes = await fetch('/api/hermes-proxy/api/config')
+          if (cfgRes.ok) {
+            const cfg = (await cfgRes.json()) as Record<string, unknown>
+            const cfgModel = readModelText(cfg.model)
+            if (cfgModel) {
+              models = [
+                { id: cfgModel, name: cfgModel, provider: currentProvider },
+              ]
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
 
       return {
         ok: true,
@@ -204,7 +245,10 @@ async function fetchModels(): Promise<{
 
   const payload = (await response.json()) as
     | Array<unknown>
-    | { data?: Array<Record<string, unknown>>; models?: Array<Record<string, unknown>> }
+    | {
+        data?: Array<Record<string, unknown>>
+        models?: Array<Record<string, unknown>>
+      }
   const rawModels = Array.isArray(payload)
     ? payload
     : Array.isArray(payload.data)
@@ -252,7 +296,11 @@ async function fetchModels(): Promise<{
     ),
   )
 
-  return { ok: true, models: models as Array<ModelCatalogEntry>, configuredProviders }
+  return {
+    ok: true,
+    models: models as Array<ModelCatalogEntry>,
+    configuredProviders,
+  }
 }
 
 async function fetchModelsForProvider(
@@ -282,11 +330,12 @@ async function switchModel(
   _sessionKey?: string,
 ): Promise<ModelSwitchResponse> {
   const modelId = model.trim()
-  const modelProvider = typeof provider === 'string' && provider.trim()
-    ? provider.trim()
-    : modelId.includes('/')
-      ? modelId.split('/')[0]
-      : undefined
+  const modelProvider =
+    typeof provider === 'string' && provider.trim()
+      ? provider.trim()
+      : modelId.includes('/')
+        ? modelId.split('/')[0]
+        : undefined
 
   // Write the model change to ~/.hermes/config.yaml via the webapi
   const patch: Record<string, string> = { model: modelId }
@@ -402,13 +451,16 @@ function hasAttachableData(dt: DataTransfer | null): boolean {
     items.some(
       (item) =>
         item.kind === 'file' &&
-        (isImageMimeType(item.type) || isTextMimeType(item.type) || item.type.trim().length === 0),
+        (isImageMimeType(item.type) ||
+          isTextMimeType(item.type) ||
+          item.type.trim().length === 0),
     )
   )
     return true
   const files = Array.from(dt.files)
   return files.some(
-    (file) => isImageFile(file) || isTextFile(file) || file.type.trim().length === 0,
+    (file) =>
+      isImageFile(file) || isTextFile(file) || file.type.trim().length === 0,
   )
 }
 
@@ -465,12 +517,12 @@ function readText(value: unknown): string {
 
 function getResolvedModelKey(model: string, provider?: string): string {
   const normalizedModel = model.trim()
-  const normalizedProvider =
-    typeof provider === 'string' ? provider.trim() : ''
+  const normalizedProvider = typeof provider === 'string' ? provider.trim() : ''
 
   if (!normalizedModel) return ''
   if (!normalizedProvider) return normalizedModel
-  if (normalizedModel.startsWith(`${normalizedProvider}/`)) return normalizedModel
+  if (normalizedModel.startsWith(`${normalizedProvider}/`))
+    return normalizedModel
   return `${normalizedProvider}/${normalizedModel}`
 }
 
@@ -488,8 +540,7 @@ function estimateDataUrlBytes(dataUrl: string): number {
   const commaIndex = dataUrl.indexOf(',')
   const base64 = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl
   if (!base64) return 0
-  const padding =
-    base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0
+  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding)
 }
 
@@ -595,7 +646,6 @@ function readModelFromStatusPayload(payload: unknown): string {
   return ''
 }
 
-
 function normalizeDraftSessionKey(sessionKey?: string): string {
   if (typeof sessionKey !== 'string') return 'new'
   const normalized = sessionKey.trim()
@@ -614,10 +664,6 @@ function readSlashCommandQuery(inputValue: string): string | null {
   if (/\s/.test(firstLine.slice(1))) return null
   return firstLine.slice(1)
 }
-
-
-
-
 
 function isTimeoutErrorMessage(message: string): boolean {
   const normalized = message.toLowerCase()
@@ -692,8 +738,12 @@ function ChatComposerComponent({
   onAbort,
 }: ChatComposerProps) {
   const mobileKeyboardInset = useWorkspaceStore((s) => s.mobileKeyboardInset)
-  const mobileComposerFocused = useWorkspaceStore((s) => s.mobileComposerFocused)
-  const setMobileKeyboardOpen = useWorkspaceStore((s) => s.setMobileKeyboardOpen)
+  const mobileComposerFocused = useWorkspaceStore(
+    (s) => s.mobileComposerFocused,
+  )
+  const setMobileKeyboardOpen = useWorkspaceStore(
+    (s) => s.setMobileKeyboardOpen,
+  )
   const setMobileKeyboardInset = useWorkspaceStore(
     (s) => s.setMobileKeyboardInset,
   )
@@ -706,7 +756,10 @@ function ChatComposerComponent({
   )
   const [attachmentProcessingCount, setAttachmentProcessingCount] = useState(0)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
+  const [previewImage, setPreviewImage] = useState<{
+    url: string
+    name: string
+  } | null>(null)
   const [focusAfterSubmitTick, setFocusAfterSubmitTick] = useState(0)
   const { settings: composerSettings } = useSettings()
   const chatNavMode = composerSettings.mobileChatNavMode ?? 'dock'
@@ -715,7 +768,8 @@ function ChatComposerComponent({
     return window.matchMedia('(max-width: 767px)').matches
   })
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false)
-  const [isProviderSwitcherExpanded, setIsProviderSwitcherExpanded] = useState(false)
+  const [isProviderSwitcherExpanded, setIsProviderSwitcherExpanded] =
+    useState(false)
   const [isMobileActionsMenuOpen, setIsMobileActionsMenuOpen] = useState(false)
   const [isWebSearchMode, _setIsWebSearchMode] = useState(false)
   const [isSlashMenuDismissed, setIsSlashMenuDismissed] = useState(false)
@@ -723,7 +777,8 @@ function ChatComposerComponent({
   const [fastMode, setFastMode] = useState(false)
   // Per-session thinking level — controlled externally (chat-screen owns the state)
   // Falls back to internal state if no external controller provided
-  const [internalThinkingLevel, setInternalThinkingLevel] = useState<ThinkingLevel>('low')
+  const [internalThinkingLevel, setInternalThinkingLevel] =
+    useState<ThinkingLevel>('low')
   const thinkingLevel = externalThinkingLevel ?? internalThinkingLevel
   // Thinking toggle removed for Hermes (not supported) — keeping state for type compat
   const _handleThinkingToggle = useCallback(() => {
@@ -747,7 +802,7 @@ function ChatComposerComponent({
   const focusFrameRef = useRef<number | null>(null)
 
   // Phase 4.2: Pinned models (kept for future use)
-  const { pinned, isPinned } = usePinnedModels()
+  const { pinned, isPinned, togglePin } = usePinnedModels()
 
   const modelsQuery = useQuery({
     queryKey: ['hermes', 'models'],
@@ -764,7 +819,15 @@ function ChatComposerComponent({
     [currentProvider, modelsQuery.data?.providers],
   )
   const otherProviderModelsQuery = useQuery({
-    queryKey: ['hermes', 'models', 'other-providers', otherProviders.map((provider) => provider.id).sort().join('|')],
+    queryKey: [
+      'hermes',
+      'models',
+      'other-providers',
+      otherProviders
+        .map((provider) => provider.id)
+        .sort()
+        .join('|'),
+    ],
     enabled: isProviderSwitcherExpanded && otherProviders.length > 0,
     retry: false,
     queryFn: async () => {
@@ -792,8 +855,6 @@ function ChatComposerComponent({
   })
 
   // Phase 4.2: (pinned model tracking kept for future use)
-  void isPinned
-  void pinned
   void modelsQuery.data
 
   const modelSwitchMutation = useMutation({
@@ -802,12 +863,13 @@ function ChatComposerComponent({
       provider?: string
       sessionKey?: string
     }) {
-      return await switchModel(payload.model, payload.provider, payload.sessionKey)
+      return await switchModel(
+        payload.model,
+        payload.provider,
+        payload.sessionKey,
+      )
     },
-    onSuccess: function onSuccess(
-      payload: ModelSwitchResponse,
-      variables,
-    ) {
+    onSuccess: function onSuccess(payload: ModelSwitchResponse, variables) {
       const provider = readText(payload.resolved?.modelProvider)
       const model = readText(payload.resolved?.model)
       const resolvedModel =
@@ -838,8 +900,6 @@ function ChatComposerComponent({
       })
     },
   })
-
-
 
   const handleModelSelect = useCallback(
     function handleModelSelect(nextModel: string, provider?: string) {
@@ -873,7 +933,7 @@ function ChatComposerComponent({
   const currentModel = currentModelQuery.data ?? ''
 
   // Auto-switch to hermes-agent model on mount (Hermes Workspace always uses Hermes)
-    // Removed: auto-switch to hermes-agent. The workspace respects the
+  // Removed: auto-switch to hermes-agent. The workspace respects the
   // model/provider configured in ~/.hermes/config.yaml. Users switch
   // via the model selector or Settings page.
 
@@ -891,23 +951,24 @@ function ChatComposerComponent({
     }
   }, [currentModel, thinkingLevel, onThinkingLevelChange])
 
-  const isModelSwitcherDisabled =
-    disabled || modelSwitchMutation.isPending
+  const isModelSwitcherDisabled = disabled || modelSwitchMutation.isPending
   const draftStorageKey = useMemo(
     () => toDraftStorageKey(sessionKey),
     [sessionKey],
   )
-  const [currentSelectedModel, setCurrentSelectedModel] = useState<string | null>(null)
+  const [currentSelectedModel, setCurrentSelectedModel] = useState<
+    string | null
+  >(null)
   // On new chat, currentModel is empty until a session is created.
   // Read the runtime model from the models query (first item is from the current provider).
   const configuredModel = useMemo(() => {
     const models = modelsQuery.data?.models ?? []
     if (!models.length) return ''
     const first = models[0]
-    return typeof first === 'string' ? first : (first.id || first.name || '')
+    return typeof first === 'string' ? first : first.id || first.name || ''
   }, [modelsQuery.data])
-  const modelButtonLabel = currentSelectedModel || currentModel || configuredModel || '⚕ Hermes Agent'
-
+  const modelButtonLabel =
+    currentSelectedModel || currentModel || configuredModel || '⚕ Hermes Agent'
 
   // Measure composer height and set CSS variable for scroll padding
   useLayoutEffect(() => {
@@ -1119,83 +1180,92 @@ function ChatComposerComponent({
 
       const timestamp = Date.now()
       const prepared = await Promise.all(
-        files.map(async (file, index): Promise<ChatComposerAttachment | null> => {
-          const imageFile = isImageFile(file)
-          const textFile = isTextFile(file)
-          if (!imageFile && !textFile && file.type.trim().length > 0) {
-            return null
-          }
+        files.map(
+          async (file, index): Promise<ChatComposerAttachment | null> => {
+            const imageFile = isImageFile(file)
+            const textFile = isTextFile(file)
+            if (!imageFile && !textFile && file.type.trim().length > 0) {
+              return null
+            }
 
-          if (file.size > MAX_ATTACHMENT_FILE_SIZE) {
-            toast(
-              `“${file.name || 'file'}” is ${formatFileSize(file.size)}. Max upload input size is ${formatFileSize(MAX_ATTACHMENT_FILE_SIZE)}.`,
-              { type: 'warning' },
+            if (file.size > MAX_ATTACHMENT_FILE_SIZE) {
+              toast(
+                `“${file.name || 'file'}” is ${formatFileSize(file.size)}. Max upload input size is ${formatFileSize(MAX_ATTACHMENT_FILE_SIZE)}.`,
+                { type: 'warning' },
+              )
+              return null
+            }
+
+            if (textFile) {
+              const textContent = await readFileAsText(file)
+              if (textContent === null) return null
+              const name =
+                file.name && file.name.trim().length > 0
+                  ? file.name.trim()
+                  : `pasted-text-${timestamp}-${index + 1}.txt`
+              const textBytes = new TextEncoder().encode(textContent).length
+              return {
+                id: crypto.randomUUID(),
+                name,
+                contentType:
+                  (isTextMimeType(file.type)
+                    ? normalizeMimeType(file.type)
+                    : '') ||
+                  inferTextMimeTypeFromFileName(name) ||
+                  'text/plain',
+                size: textBytes,
+                dataUrl: textContent,
+                kind: 'file',
+              }
+            }
+
+            const compressedDataUrl = await compressImageToDataUrl(file).catch(
+              () => null,
             )
-            return null
-          }
+            const dataUrl = compressedDataUrl || (await readFileAsDataUrl(file))
+            if (!dataUrl) return null
 
-          if (textFile) {
-            const textContent = await readFileAsText(file)
-            if (textContent === null) return null
+            const dataUrlMimeType = readDataUrlMimeType(dataUrl)
+            if (!isImageMimeType(dataUrlMimeType || '')) {
+              return null
+            }
+
+            const transportBytes = estimateDataUrlBytes(dataUrl)
+            if (transportBytes > MAX_TRANSPORT_IMAGE_SIZE) {
+              toast(
+                `Image compressed to ${(transportBytes / (1024 * 1024)).toFixed(2)}mb — still over the 1mb limit. Try a smaller screenshot.`,
+                { type: 'warning' },
+              )
+              return null
+            }
+
             const name =
               file.name && file.name.trim().length > 0
                 ? file.name.trim()
-                : `pasted-text-${timestamp}-${index + 1}.txt`
-            const textBytes = new TextEncoder().encode(textContent).length
+                : `pasted-image-${timestamp}-${index + 1}.jpg`
+            const detectedMimeType =
+              dataUrlMimeType ||
+              (isImageMimeType(file.type)
+                ? normalizeMimeType(file.type)
+                : '') ||
+              inferImageMimeTypeFromFileName(name) ||
+              'image/jpeg'
             return {
               id: crypto.randomUUID(),
               name,
-              contentType:
-                (isTextMimeType(file.type) ? normalizeMimeType(file.type) : '') ||
-                inferTextMimeTypeFromFileName(name) ||
-                'text/plain',
-              size: textBytes,
-              dataUrl: textContent,
-              kind: 'file',
+              contentType: detectedMimeType,
+              size: transportBytes,
+              dataUrl,
+              previewUrl: dataUrl,
+              kind: 'image',
             }
-          }
-
-          const compressedDataUrl = await compressImageToDataUrl(file).catch(() => null)
-          const dataUrl = compressedDataUrl || (await readFileAsDataUrl(file))
-          if (!dataUrl) return null
-
-          const dataUrlMimeType = readDataUrlMimeType(dataUrl)
-          if (!isImageMimeType(dataUrlMimeType || '')) {
-            return null
-          }
-
-          const transportBytes = estimateDataUrlBytes(dataUrl)
-          if (transportBytes > MAX_TRANSPORT_IMAGE_SIZE) {
-            toast(
-              `Image compressed to ${(transportBytes / (1024 * 1024)).toFixed(2)}mb — still over the 1mb limit. Try a smaller screenshot.`,
-              { type: 'warning' },
-            )
-            return null
-          }
-
-          const name =
-            file.name && file.name.trim().length > 0
-              ? file.name.trim()
-              : `pasted-image-${timestamp}-${index + 1}.jpg`
-          const detectedMimeType =
-            dataUrlMimeType ||
-            (isImageMimeType(file.type) ? normalizeMimeType(file.type) : '') ||
-            inferImageMimeTypeFromFileName(name) ||
-            'image/jpeg'
-          return {
-            id: crypto.randomUUID(),
-            name,
-            contentType: detectedMimeType,
-            size: transportBytes,
-            dataUrl,
-            previewUrl: dataUrl,
-            kind: 'image',
-          }
-        }),
+          },
+        ),
       )
 
       const valid = prepared.filter(
-        (attachment): attachment is ChatComposerAttachment => attachment !== null,
+        (attachment): attachment is ChatComposerAttachment =>
+          attachment !== null,
       )
 
       const skippedCount = prepared.length - valid.length
@@ -1298,7 +1368,8 @@ function ChatComposerComponent({
     }))
     try {
       // Fast mode is incompatible with extended thinking — disable if thinking is on
-      const effectiveFastMode = fastMode && thinkingLevel === 'off' ? true : false
+      const effectiveFastMode =
+        fastMode && thinkingLevel === 'off' ? true : false
       onSubmit(body, attachmentPayload, effectiveFastMode, {
         reset,
         setValue: setComposerValue,
@@ -1350,7 +1421,8 @@ function ChatComposerComponent({
       }
     }
     window.addEventListener('keydown', handleModelShortcut, true)
-    return () => window.removeEventListener('keydown', handleModelShortcut, true)
+    return () =>
+      window.removeEventListener('keydown', handleModelShortcut, true)
   }, [])
 
   const submitDisabled =
@@ -1507,17 +1579,20 @@ function ChatComposerComponent({
     setIsSlashMenuDismissed(true)
   }, [])
 
-  const handlePromptSubmit = useCallback((e?: React.FormEvent) => {
-    e?.preventDefault()
-    if (isSlashMenuOpen) {
-      const applied = slashMenuRef.current?.selectActive() ?? false
-      if (!applied) {
-        setIsSlashMenuDismissed(true)
+  const handlePromptSubmit = useCallback(
+    (e?: React.FormEvent) => {
+      e?.preventDefault()
+      if (isSlashMenuOpen) {
+        const applied = slashMenuRef.current?.selectActive() ?? false
+        if (!applied) {
+          setIsSlashMenuDismissed(true)
+        }
+        return
       }
-      return
-    }
-    handleSubmit()
-  }, [handleSubmit, isSlashMenuOpen])
+      handleSubmit()
+    },
+    [handleSubmit, isSlashMenuOpen],
+  )
 
   const handlePromptKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1632,49 +1707,47 @@ function ChatComposerComponent({
   // Always show composer when keyboard/focus is active
   const effectiveScrollHidden = scrollHidden && !keyboardOrFocusActive
 
-  const composerWrapperStyle = useMemo(
-    () => {
-      if (!isMobileViewport) return { maxWidth: 'min(768px, 100%)' } as CSSProperties
-      const safeArea = 'env(safe-area-inset-bottom, 0px)'
-      const tabBarH = 'var(--tabbar-h, 0px)'
-      const tf = effectiveScrollHidden ? 'translateY(110%)' : 'translateY(0)'
+  const composerWrapperStyle = useMemo(() => {
+    if (!isMobileViewport)
+      return { maxWidth: 'min(768px, 100%)' } as CSSProperties
+    const safeArea = 'env(safe-area-inset-bottom, 0px)'
+    const tabBarH = 'var(--tabbar-h, 0px)'
+    const tf = effectiveScrollHidden ? 'translateY(110%)' : 'translateY(0)'
 
-      if (keyboardOrFocusActive) {
-        // All modes: keyboard up = flush at bottom with keyboard inset
-        return {
-          maxWidth: 'min(768px, 100%)',
-          bottom: '0px',
-          paddingBottom: `calc(var(--kb-inset, 0px))`,
-          transform: tf,
-          WebkitTransform: tf,
-          '--mobile-tab-bar-offset': MOBILE_TAB_BAR_OFFSET,
-        } as CSSProperties
-      }
-
-      if (chatNavMode === 'dock') {
-        // iMessage mode: tab bar hidden, composer docks to bottom with safe area only
-        return {
-          maxWidth: 'min(768px, 100%)',
-          bottom: '0px',
-          paddingBottom: `max(var(--safe-b, 0px), ${safeArea})`,
-          transform: tf,
-          WebkitTransform: tf,
-          '--mobile-tab-bar-offset': MOBILE_TAB_BAR_OFFSET,
-        } as CSSProperties
-      }
-
-      // scroll-hide / integrated: tab bar visible, composer sits above it
+    if (keyboardOrFocusActive) {
+      // All modes: keyboard up = flush at bottom with keyboard inset
       return {
         maxWidth: 'min(768px, 100%)',
-        bottom: `calc(${tabBarH} + 4px)`,
-        paddingBottom: '0px',
+        bottom: '0px',
+        paddingBottom: `calc(var(--kb-inset, 0px))`,
         transform: tf,
         WebkitTransform: tf,
         '--mobile-tab-bar-offset': MOBILE_TAB_BAR_OFFSET,
       } as CSSProperties
-    },
-    [isMobileViewport, keyboardOrFocusActive, effectiveScrollHidden],
-  )
+    }
+
+    if (chatNavMode === 'dock') {
+      // iMessage mode: tab bar hidden, composer docks to bottom with safe area only
+      return {
+        maxWidth: 'min(768px, 100%)',
+        bottom: '0px',
+        paddingBottom: `max(var(--safe-b, 0px), ${safeArea})`,
+        transform: tf,
+        WebkitTransform: tf,
+        '--mobile-tab-bar-offset': MOBILE_TAB_BAR_OFFSET,
+      } as CSSProperties
+    }
+
+    // scroll-hide / integrated: tab bar visible, composer sits above it
+    return {
+      maxWidth: 'min(768px, 100%)',
+      bottom: `calc(${tabBarH} + 4px)`,
+      paddingBottom: '0px',
+      transform: tf,
+      WebkitTransform: tf,
+      '--mobile-tab-bar-offset': MOBILE_TAB_BAR_OFFSET,
+    } as CSSProperties
+  }, [isMobileViewport, keyboardOrFocusActive, effectiveScrollHidden])
 
   return (
     <div
@@ -1698,7 +1771,10 @@ function ChatComposerComponent({
                     'rounded-[22px]',
                   ].join(' '),
             ].join(' ')
-          : ['relative z-40 shrink-0 w-full mx-auto px-3 pt-2 sm:px-5', 'bg-surface'].join(' '),
+          : [
+              'relative z-40 shrink-0 w-full mx-auto px-3 pt-2 sm:px-5',
+              'bg-surface',
+            ].join(' '),
         // Mobile: pin above tab bar + safe-area inset. Desktop: normal bottom padding.
         !isMobileViewport
           ? 'pb-[max(var(--safe-b),8px)] md:pb-[calc(var(--safe-b)+0.75rem)]'
@@ -1726,7 +1802,8 @@ function ChatComposerComponent({
         className={cn(
           'relative z-50 transition-all duration-300',
           // On mobile: remove PromptInput's built-in rounded/bg/padding — outer wrapper owns the container
-          isMobileViewport && 'py-0 gap-0 !rounded-none !bg-transparent shadow-none outline-none',
+          isMobileViewport &&
+            'py-0 gap-0 !rounded-none !bg-transparent shadow-none outline-none',
           isDraggingOver &&
             'outline-primary-500 ring-2 ring-primary-300 bg-primary-50/80',
           isLoading &&
@@ -1862,8 +1939,6 @@ function ChatComposerComponent({
                 className="min-h-[36px] max-h-[120px] flex-1 text-base leading-snug"
               />
 
-
-
               {/* Right side: stop / send / mic */}
               <div className="shrink-0">
                 {isLoading ? (
@@ -1875,7 +1950,9 @@ function ChatComposerComponent({
                   >
                     <HugeiconsIcon icon={StopIcon} size={18} strokeWidth={2} />
                   </button>
-                ) : value.trim().length > 0 || attachments.length > 0 || attachmentProcessingCount > 0 ? (
+                ) : value.trim().length > 0 ||
+                  attachments.length > 0 ||
+                  attachmentProcessingCount > 0 ? (
                   <button
                     type="button"
                     onClick={handleSubmit}
@@ -1883,9 +1960,13 @@ function ChatComposerComponent({
                     aria-label="Send message"
                     className="size-9 rounded-full bg-accent-500 flex items-center justify-center text-white transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                   >
-                    <HugeiconsIcon icon={ArrowUp02Icon} size={18} strokeWidth={2} />
+                    <HugeiconsIcon
+                      icon={ArrowUp02Icon}
+                      size={18}
+                      strokeWidth={2}
+                    />
                   </button>
-                ) : (voiceInput.isSupported || voiceRecorder.isSupported) ? (
+                ) : voiceInput.isSupported || voiceRecorder.isSupported ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1917,7 +1998,11 @@ function ChatComposerComponent({
                           : 'text-primary-500 bg-neutral-100 dark:bg-white/10',
                     )}
                   >
-                    <HugeiconsIcon icon={Mic01Icon} size={20} strokeWidth={1.5} />
+                    <HugeiconsIcon
+                      icon={Mic01Icon}
+                      size={20}
+                      strokeWidth={1.5}
+                    />
                     {voiceRecorder.isRecording ? (
                       <span className="absolute -top-1 -right-1 flex size-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -1933,7 +2018,11 @@ function ChatComposerComponent({
                     aria-label="Send message"
                     className="size-9 rounded-full bg-accent-500 flex items-center justify-center text-white transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <HugeiconsIcon icon={ArrowUp02Icon} size={18} strokeWidth={2} />
+                    <HugeiconsIcon
+                      icon={ArrowUp02Icon}
+                      size={18}
+                      strokeWidth={2}
+                    />
                   </button>
                 )}
               </div>
@@ -1957,8 +2046,8 @@ function ChatComposerComponent({
                       aria-label="Actions"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <div className="mx-auto mt-3 mb-4 h-1 w-10 rounded-full bg-neutral-300" />
-                      <div className="px-4 pb-2 text-sm font-semibold text-neutral-500">
+                      <div className="mx-auto mt-3 mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                      <div className="px-4 pb-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                         Actions
                       </div>
                       <div className="grid grid-cols-2 gap-2 px-4 pb-4">
@@ -1972,8 +2061,12 @@ function ChatComposerComponent({
                           }}
                           className="rounded-xl border border-neutral-100 bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 p-3 flex flex-col items-start gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <span className="rounded-lg bg-orange-100 p-1.5 text-orange-600">
-                            <HugeiconsIcon icon={Add01Icon} size={24} strokeWidth={1.5} />
+                          <span className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-1.5 text-orange-600 dark:text-orange-400">
+                            <HugeiconsIcon
+                              icon={Add01Icon}
+                              size={24}
+                              strokeWidth={1.5}
+                            />
                           </span>
                           <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
                             Attach File
@@ -1993,8 +2086,12 @@ function ChatComposerComponent({
                           }}
                           className="rounded-xl border border-neutral-100 bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 p-3 flex flex-col items-start gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <span className="rounded-lg bg-indigo-100 p-1.5 text-indigo-600">
-                            <HugeiconsIcon icon={ArrowDown01Icon} size={24} strokeWidth={1.5} />
+                          <span className="rounded-lg bg-indigo-100 dark:bg-indigo-900/30 p-1.5 text-indigo-600 dark:text-indigo-400">
+                            <HugeiconsIcon
+                              icon={ArrowDown01Icon}
+                              size={24}
+                              strokeWidth={1.5}
+                            />
                           </span>
                           <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate max-w-full">
                             {modelButtonLabel}
@@ -2010,8 +2107,12 @@ function ChatComposerComponent({
                             }}
                             className="rounded-xl border border-neutral-100 bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 p-3 flex flex-col items-start gap-2 text-left"
                           >
-                            <span className="rounded-lg bg-red-100 p-1.5 text-red-600">
-                              <HugeiconsIcon icon={Delete01Icon} size={24} strokeWidth={1.5} />
+                            <span className="rounded-lg bg-red-100 dark:bg-red-900/30 p-1.5 text-red-600 dark:text-red-400">
+                              <HugeiconsIcon
+                                icon={Delete01Icon}
+                                size={24}
+                                strokeWidth={1.5}
+                              />
                             </span>
                             <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
                               Clear Draft
@@ -2028,8 +2129,12 @@ function ChatComposerComponent({
                             }}
                             className="rounded-xl border border-neutral-100 bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 p-3 flex flex-col items-start gap-2 text-left"
                           >
-                            <span className="rounded-lg bg-green-100 p-1.5 text-green-600">
-                              <HugeiconsIcon icon={Add01Icon} size={24} strokeWidth={1.5} />
+                            <span className="rounded-lg bg-green-100 dark:bg-green-900/30 p-1.5 text-green-600 dark:text-green-400">
+                              <HugeiconsIcon
+                                icon={Add01Icon}
+                                size={24}
+                                strokeWidth={1.5}
+                              />
                             </span>
                             <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
                               New Session
@@ -2059,15 +2164,180 @@ function ChatComposerComponent({
                       aria-label="Select model"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <div className="mx-auto mt-3 mb-4 h-1 w-10 rounded-full bg-neutral-300" />
-                      <div className="px-4 pb-2 text-sm font-semibold text-neutral-500">
+                      <div className="mx-auto mt-3 mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                      <div className="px-4 pb-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                         Model
                       </div>
-                      <div className="pb-4">
-                        <div className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm bg-accent-50 text-accent-700 font-medium">
-                          <span className="flex-1 truncate">⚕ Hermes Agent</span>
-                          <span className="size-1.5 rounded-full bg-accent-500 shrink-0" />
-                        </div>
+                      <div className="pb-4 max-h-[60dvh] overflow-y-auto overflow-x-hidden">
+                        {(() => {
+                          const allModels = modelsQuery.data?.models ?? []
+                          const defaultProvider =
+                            modelsQuery.data?.currentProvider ?? ''
+                          if (allModels.length === 0) {
+                            return (
+                              <div className="p-4 text-center text-sm text-neutral-500">
+                                <p className="font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                  No models available
+                                </p>
+                                <p className="text-xs">
+                                  Check your Hermes provider configuration.
+                                </p>
+                              </div>
+                            )
+                          }
+                          // Parse models into typed entries
+                          const parsed = allModels.map((m) => {
+                            const mId = String(
+                              typeof m === 'string'
+                                ? m
+                                : m.id || m.model || m.name || 'unknown',
+                            )
+                            const mName = String(
+                              typeof m === 'string'
+                                ? m
+                                : m.name ||
+                                    m.displayName ||
+                                    m.label ||
+                                    m.id ||
+                                    m.model ||
+                                    m,
+                            )
+                            const mProvider =
+                              typeof m === 'string'
+                                ? defaultProvider
+                                : ((m as Record<string, unknown>)
+                                    .provider as string) || defaultProvider
+                            const isLocal =
+                              typeof m !== 'string' &&
+                              (m as Record<string, unknown>).description ===
+                                'local'
+                            return {
+                              id: mId,
+                              name: mName,
+                              provider: mProvider,
+                              isLocal,
+                            }
+                          })
+                          // Split pinned vs unpinned, group unpinned by provider
+                          const pinnedEntries = parsed.filter((e) =>
+                            isPinned(e.id),
+                          )
+                          const unpinnedGroups = new Map<
+                            string,
+                            typeof parsed
+                          >()
+                          for (const entry of parsed) {
+                            if (isPinned(entry.id)) continue
+                            const group =
+                              unpinnedGroups.get(entry.provider) ?? []
+                            group.push(entry)
+                            unpinnedGroups.set(entry.provider, group)
+                          }
+                          const renderEntry = (entry: (typeof parsed)[0]) => {
+                            const isActive =
+                              entry.id === currentModel ||
+                              `${defaultProvider}/${entry.id}` === currentModel
+                            return (
+                              <div
+                                key={entry.id}
+                                className="group relative flex items-center"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleModelSelect(
+                                      entry.id,
+                                      entry.provider || undefined,
+                                    )
+                                    setIsModelMenuOpen(false)
+                                  }}
+                                  className={`flex flex-1 items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                                    isActive
+                                      ? 'bg-accent-50 text-accent-700 font-medium dark:bg-accent-900/30 dark:text-accent-300 border-l-2 border-accent-500'
+                                      : 'text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                                  }`}
+                                >
+                                  <span className="flex-1 truncate">
+                                    {entry.name}
+                                  </span>
+                                  {entry.isLocal && (
+                                    <span className="text-[10px] text-neutral-400 px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800">
+                                      local
+                                    </span>
+                                  )}
+                                  {isActive && (
+                                    <span className="size-1.5 rounded-full bg-accent-500 shrink-0" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    togglePin(entry.id)
+                                  }}
+                                  className={`absolute right-3 rounded p-1 transition-opacity ${
+                                    isPinned(entry.id)
+                                      ? 'text-accent-500 opacity-80 hover:opacity-100'
+                                      : 'text-neutral-400 opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-accent-500'
+                                  }`}
+                                  aria-label={
+                                    isPinned(entry.id)
+                                      ? `Unpin ${entry.name}`
+                                      : `Pin ${entry.name}`
+                                  }
+                                >
+                                  <svg
+                                    width="13"
+                                    height="13"
+                                    viewBox="0 0 24 24"
+                                    fill={
+                                      isPinned(entry.id)
+                                        ? 'currentColor'
+                                        : 'none'
+                                    }
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )
+                          }
+                          return (
+                            <>
+                              {pinnedEntries.length > 0 && (
+                                <div className="mb-2 border-b border-neutral-100 dark:border-neutral-800 pb-2">
+                                  <div className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+                                    <svg
+                                      width="13"
+                                      height="13"
+                                      viewBox="0 0 24 24"
+                                      fill="currentColor"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="text-accent-500"
+                                    >
+                                      <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+                                    </svg>
+                                    <span>Pinned</span>
+                                  </div>
+                                  {pinnedEntries.map(renderEntry)}
+                                </div>
+                              )}
+                              {Array.from(unpinnedGroups.entries())
+                                .sort((a, b) => a[0].localeCompare(b[0]))
+                                .map(([provider, models]) => (
+                                  <div key={provider}>
+                                    <div className="px-4 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+                                      {provider}
+                                    </div>
+                                    {models.map(renderEntry)}
+                                  </div>
+                                ))}
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
                   </>,
@@ -2111,7 +2381,11 @@ function ChatComposerComponent({
                     disabled={disabled}
                     onClick={handleOpenAttachmentPicker}
                   >
-                    <HugeiconsIcon icon={Add01Icon} size={20} strokeWidth={1.5} />
+                    <HugeiconsIcon
+                      icon={Add01Icon}
+                      size={20}
+                      strokeWidth={1.5}
+                    />
                   </Button>
                 </PromptInputAction>
                 {hasDraft && !isLoading && (
@@ -2138,17 +2412,197 @@ function ChatComposerComponent({
                   </span>
                 )}
 
-                <div className="ml-0.5 md:ml-1 flex min-w-0 items-center">
-                  <span
-                    className="inline-flex h-7 max-w-[8rem] items-center rounded-full bg-primary-100/70 px-1.5 md:max-w-none md:px-2.5 text-[11px] font-medium text-primary-600"
+                <div
+                  className="ml-0.5 md:ml-1 flex min-w-0 items-center"
+                  ref={modelSelectorRef}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsModelMenuOpen((prev) => !prev)}
+                    disabled={isModelSwitcherDisabled}
+                    className="inline-flex h-7 max-w-[8rem] items-center rounded-full bg-primary-100/70 px-1.5 md:max-w-none md:px-2.5 text-[11px] font-medium text-primary-600 hover:bg-primary-200/80 dark:hover:bg-primary-800/60 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     title={modelButtonLabel}
                   >
                     <span className="max-w-[5.5rem] truncate sm:max-w-[8.5rem] md:max-w-[12rem]">
                       {modelButtonLabel}
                     </span>
-                  </span>
+                  </button>
+                  {isModelMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-[199]"
+                        onClick={() => setIsModelMenuOpen(false)}
+                      />
+                      <div className="absolute bottom-full left-0 mb-2 z-[200] min-w-[16rem] max-w-[calc(100vw-2rem)] sm:max-w-[28rem] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-900 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                        <div className="max-h-[20rem] overflow-y-auto overflow-x-hidden p-1">
+                          {(() => {
+                            const allModels = modelsQuery.data?.models ?? []
+                            const defaultProvider =
+                              modelsQuery.data?.currentProvider ?? ''
+                            if (allModels.length === 0) {
+                              return (
+                                <div className="p-4 text-center text-sm text-neutral-500">
+                                  No models available
+                                </div>
+                              )
+                            }
+                            const parsed = allModels.map((m) => {
+                              const mId = String(
+                                typeof m === 'string'
+                                  ? m
+                                  : m.id || m.model || m.name || 'unknown',
+                              )
+                              const mName = String(
+                                typeof m === 'string'
+                                  ? m
+                                  : m.name ||
+                                      m.displayName ||
+                                      m.label ||
+                                      m.id ||
+                                      m.model ||
+                                      m,
+                              )
+                              const mProvider =
+                                typeof m === 'string'
+                                  ? defaultProvider
+                                  : ((m as Record<string, unknown>)
+                                      .provider as string) || defaultProvider
+                              const isLocal =
+                                typeof m !== 'string' &&
+                                (m as Record<string, unknown>).description ===
+                                  'local'
+                              return {
+                                id: mId,
+                                name: mName,
+                                provider: mProvider,
+                                isLocal,
+                              }
+                            })
+                            const pinnedEntries = parsed.filter((e) =>
+                              isPinned(e.id),
+                            )
+                            const unpinnedGroups = new Map<
+                              string,
+                              typeof parsed
+                            >()
+                            for (const entry of parsed) {
+                              if (isPinned(entry.id)) continue
+                              const group =
+                                unpinnedGroups.get(entry.provider) ?? []
+                              group.push(entry)
+                              unpinnedGroups.set(entry.provider, group)
+                            }
+                            const renderEntry = (entry: (typeof parsed)[0]) => {
+                              const isActive =
+                                entry.id === currentModel ||
+                                `${defaultProvider}/${entry.id}` ===
+                                  currentModel
+                              return (
+                                <div
+                                  key={entry.id}
+                                  className="group relative flex items-center"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleModelSelect(
+                                        entry.id,
+                                        entry.provider || undefined,
+                                      )
+                                      setIsModelMenuOpen(false)
+                                    }}
+                                    className={`flex flex-1 items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                                      isActive
+                                        ? 'border-l-2 border-accent-500 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+                                        : 'text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800/50'
+                                    }`}
+                                  >
+                                    <span className="flex-1 truncate">
+                                      {entry.name}
+                                    </span>
+                                    {entry.isLocal && (
+                                      <span className="text-[10px] text-neutral-400 px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-700">
+                                        local
+                                      </span>
+                                    )}
+                                    {isActive && (
+                                      <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      togglePin(entry.id)
+                                    }}
+                                    className={`absolute right-2 rounded p-1 transition-opacity ${
+                                      isPinned(entry.id)
+                                        ? 'text-accent-500 opacity-80 hover:opacity-100'
+                                        : 'text-neutral-400 opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-accent-500'
+                                    }`}
+                                    aria-label={
+                                      isPinned(entry.id)
+                                        ? `Unpin ${entry.name}`
+                                        : `Pin ${entry.name}`
+                                    }
+                                  >
+                                    <svg
+                                      width="12"
+                                      height="12"
+                                      viewBox="0 0 24 24"
+                                      fill={
+                                        isPinned(entry.id)
+                                          ? 'currentColor'
+                                          : 'none'
+                                      }
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                    >
+                                      <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )
+                            }
+                            return (
+                              <>
+                                {pinnedEntries.length > 0 && (
+                                  <div className="mb-1 border-b border-neutral-200 dark:border-neutral-700 pb-1">
+                                    <div className="mb-1 flex items-center gap-1 px-3 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+                                      <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        className="text-accent-500"
+                                      >
+                                        <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+                                      </svg>
+                                      <span>Pinned</span>
+                                    </div>
+                                    {pinnedEntries.map(renderEntry)}
+                                  </div>
+                                )}
+                                {Array.from(unpinnedGroups.entries())
+                                  .sort((a, b) => a[0].localeCompare(b[0]))
+                                  .map(([provider, models]) => (
+                                    <div key={provider}>
+                                      <div className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+                                        {provider}
+                                      </div>
+                                      {models.map(renderEntry)}
+                                    </div>
+                                  ))}
+                              </>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-
               </div>
               <div className="ml-1 flex shrink-0 items-center gap-0.5 md:gap-1">
                 {voiceInput.isSupported || voiceRecorder.isSupported ? (
@@ -2194,7 +2648,11 @@ function ChatComposerComponent({
                       }
                       disabled={disabled}
                     >
-                      <HugeiconsIcon icon={Mic01Icon} size={20} strokeWidth={1.5} />
+                      <HugeiconsIcon
+                        icon={Mic01Icon}
+                        size={20}
+                        strokeWidth={1.5}
+                      />
                       {voiceRecorder.isRecording ? (
                         <span className="absolute -top-1 -right-1 flex size-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -2213,27 +2671,31 @@ function ChatComposerComponent({
                       className="rounded-md"
                       aria-label="Stop generation"
                     >
-                      <HugeiconsIcon icon={StopIcon} size={20} strokeWidth={1.5} />
-                    </Button>
-                  </PromptInputAction>
-                ) : (
-                  <>
-                  <PromptInputAction tooltip="Send message">
-                    <Button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={submitDisabled}
-                      size="icon-sm"
-                      className="rounded-full"
-                      aria-label="Send message"
-                    >
                       <HugeiconsIcon
-                        icon={ArrowUp02Icon}
+                        icon={StopIcon}
                         size={20}
                         strokeWidth={1.5}
                       />
                     </Button>
                   </PromptInputAction>
+                ) : (
+                  <>
+                    <PromptInputAction tooltip="Send message">
+                      <Button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={submitDisabled}
+                        size="icon-sm"
+                        className="rounded-full"
+                        aria-label="Send message"
+                      >
+                        <HugeiconsIcon
+                          icon={ArrowUp02Icon}
+                          size={20}
+                          strokeWidth={1.5}
+                        />
+                      </Button>
+                    </PromptInputAction>
                   </>
                 )}
               </div>
@@ -2243,30 +2705,34 @@ function ChatComposerComponent({
       </PromptInput>
 
       {/* Fullscreen image preview overlay — portaled to body to escape stacking context */}
-      {previewImage && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setPreviewImage(null)}
-          role="dialog"
-          aria-label="Image preview"
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white dark:hover:bg-white/10/30 active:bg-white/40 transition-colors"
-            onClick={(e) => { e.stopPropagation(); setPreviewImage(null) }}
-            aria-label="Close preview"
+      {previewImage &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setPreviewImage(null)}
+            role="dialog"
+            aria-label="Image preview"
           >
-            <HugeiconsIcon icon={Cancel01Icon} size={24} strokeWidth={2} />
-          </button>
-          <img
-            src={previewImage.url}
-            alt={previewImage.name}
-            className="max-h-[85vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>,
-        document.body,
-      )}
+            <button
+              type="button"
+              className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white dark:hover:bg-white/10/30 active:bg-white/40 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPreviewImage(null)
+              }}
+              aria-label="Close preview"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={24} strokeWidth={2} />
+            </button>
+            <img
+              src={previewImage.url}
+              alt={previewImage.name}
+              className="max-h-[85vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -2274,4 +2740,9 @@ function ChatComposerComponent({
 const MemoizedChatComposer = memo(ChatComposerComponent)
 
 export { MemoizedChatComposer as ChatComposer }
-export type { ChatComposerAttachment, ChatComposerHelpers, ChatComposerHandle, ThinkingLevel }
+export type {
+  ChatComposerAttachment,
+  ChatComposerHelpers,
+  ChatComposerHandle,
+  ThinkingLevel,
+}

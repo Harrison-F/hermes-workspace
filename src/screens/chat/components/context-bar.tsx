@@ -30,7 +30,13 @@ function formatTokens(n: number): string {
   return String(n)
 }
 
-function ContextBarComponent({ compact: _compact }: { compact?: boolean }) {
+function ContextBarComponent({
+  compact: _compact,
+  sessionId,
+}: {
+  compact?: boolean
+  sessionId?: string
+}) {
   const [ctx, setCtx] = useState<ContextData>(EMPTY)
   const [showLabel, setShowLabel] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -45,7 +51,10 @@ function ContextBarComponent({ compact: _compact }: { compact?: boolean }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/context-usage')
+      const params = sessionId
+        ? `?sessionId=${encodeURIComponent(sessionId)}`
+        : ''
+      const res = await fetch(`/api/context-usage${params}`)
       if (!res.ok) return
       const data = await res.json()
       if (data.ok) {
@@ -59,7 +68,7 @@ function ContextBarComponent({ compact: _compact }: { compact?: boolean }) {
     } catch {
       /* ignore */
     }
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     void refresh()
@@ -119,7 +128,10 @@ function ContextBarComponent({ compact: _compact }: { compact?: boolean }) {
         {/* Bar — always 3px, never moves */}
         <div className={cn('w-full h-[3px]', barBg)}>
           <div
-            className={cn('h-full transition-all duration-700 ease-out', barColor)}
+            className={cn(
+              'h-full transition-all duration-700 ease-out',
+              barColor,
+            )}
             style={{ width: `${clampedPct}%` }}
           />
         </div>
@@ -143,7 +155,7 @@ function ContextBarComponent({ compact: _compact }: { compact?: boolean }) {
       <PreviewCardTrigger className="block w-full cursor-pointer">
         <div
           className={cn(
-            'shrink-0 w-full h-2 border-b border-primary-200/50 dark:border-primary-700/30 transition-colors duration-300 relative',
+            'shrink-0 w-full h-2 transition-colors duration-300 relative',
             barBg,
           )}
         >

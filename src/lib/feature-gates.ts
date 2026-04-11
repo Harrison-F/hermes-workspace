@@ -1,6 +1,13 @@
-import { getCapabilities } from '../server/gateway-capabilities'
+// FIX: removed import of getCapabilities from server/gateway-capabilities — that module
+// transitively imports node:sqlite (local-db.ts) which cannot be bundled for the browser.
+// isFeatureAvailable was the only consumer and had no callers, so it is removed below.
 
-export type EnhancedFeature = 'sessions' | 'skills' | 'memory' | 'config' | 'jobs'
+export type EnhancedFeature =
+  | 'sessions'
+  | 'skills'
+  | 'memory'
+  | 'config'
+  | 'jobs'
 
 const FEATURE_LABELS: Record<EnhancedFeature, string> = {
   sessions: 'Sessions',
@@ -10,7 +17,9 @@ const FEATURE_LABELS: Record<EnhancedFeature, string> = {
   jobs: 'Jobs',
 }
 
-function normalizeFeature(feature: EnhancedFeature | string): EnhancedFeature | null {
+function normalizeFeature(
+  feature: EnhancedFeature | string,
+): EnhancedFeature | null {
   const normalized = feature.trim().toLowerCase()
   if (
     normalized === 'sessions' ||
@@ -25,20 +34,15 @@ function normalizeFeature(feature: EnhancedFeature | string): EnhancedFeature | 
   return null
 }
 
-export function isFeatureAvailable(
-  feature: EnhancedFeature,
-): boolean {
-  const caps = getCapabilities()
-  return caps[feature] === true
-}
-
 export function getFeatureLabel(feature: EnhancedFeature | string): string {
   const normalized = normalizeFeature(feature)
   if (!normalized) return feature
   return FEATURE_LABELS[normalized]
 }
 
-export function getUnavailableReason(feature: EnhancedFeature | string): string {
+export function getUnavailableReason(
+  feature: EnhancedFeature | string,
+): string {
   return `${getFeatureLabel(feature)} requires a Hermes gateway with enhanced API support.`
 }
 

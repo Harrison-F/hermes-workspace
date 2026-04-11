@@ -63,7 +63,16 @@ export function OnboardingWizard() {
         prevStep()
       }
     },
-    [canProceed, isOpen, isLastStep, isFirstStep, skip, handleComplete, nextStep, prevStep],
+    [
+      canProceed,
+      isOpen,
+      isLastStep,
+      isFirstStep,
+      skip,
+      handleComplete,
+      nextStep,
+      prevStep,
+    ],
   )
 
   useEffect(() => {
@@ -120,7 +129,11 @@ export function OnboardingWizard() {
                       <motion.div
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: 'spring', damping: 15, stiffness: 300 }}
+                        transition={{
+                          type: 'spring',
+                          damping: 15,
+                          stiffness: 300,
+                        }}
                         className={cn(
                           'mb-6 flex items-center justify-center shadow-lg',
                           step.id === 'welcome'
@@ -130,7 +143,11 @@ export function OnboardingWizard() {
                         )}
                       >
                         {step.id === 'welcome' ? (
-                          <img src="/hermes-avatar.webp" alt="Hermes" className="size-16 rounded-2xl" />
+                          <img
+                            src="/hermes-avatar.webp"
+                            alt="Hermes"
+                            className="size-16 rounded-2xl"
+                          />
                         ) : (
                           <HugeiconsIcon
                             icon={step.icon}

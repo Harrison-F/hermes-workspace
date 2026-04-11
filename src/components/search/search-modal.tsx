@@ -250,11 +250,7 @@ export function SearchModal() {
         scope: 'actions',
         icon: (
           <HugeiconsIcon
-            icon={
-              entry.id === 'qa-logs'
-                ? ListViewIcon
-                : FlashIcon
-            }
+            icon={entry.id === 'qa-logs' ? ListViewIcon : FlashIcon}
             size={20}
             strokeWidth={1.5}
           />
