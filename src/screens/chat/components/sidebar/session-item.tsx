@@ -2,7 +2,7 @@
 
 import { Link } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import Delete01Icon from '@hugeicons/core-free-icons/Delete01Icon'
+import ArchiveIcon from '@hugeicons/core-free-icons/ArchiveIcon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import Pen01Icon from '@hugeicons/core-free-icons/Pen01Icon'
 import PinIcon from '@hugeicons/core-free-icons/PinIcon'
@@ -131,6 +131,11 @@ function SessionItemComponent({
         } catch {}
         onSelect?.()
       }}
+      onContextMenu={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onDelete(session)
+      }}
       className={cn(
         'group inline-flex items-center justify-between',
         'w-full text-left pl-1.5 pr-0.5 h-14 rounded-lg transition-colors duration-0',
@@ -169,8 +174,8 @@ function SessionItemComponent({
           }}
           className={cn(
             'ml-2 inline-flex size-7 items-center justify-center rounded-md text-primary-700',
-            'opacity-0 transition-opacity group-hover:opacity-100 hover:bg-primary-200 dark:hover:bg-primary-800',
-            'aria-expanded:opacity-100 aria-expanded:bg-primary-200',
+            'opacity-100 transition-colors hover:bg-primary-200 dark:hover:bg-primary-800',
+            'aria-expanded:bg-primary-200',
           )}
           aria-label="Session options"
         >
@@ -209,10 +214,10 @@ function SessionItemComponent({
               event.stopPropagation()
               onDelete(session)
             }}
-            className="text-red-700 gap-2 hover:bg-red-50 dark:hover:bg-red-900/30/80 data-highlighted:bg-red-50/80"
+            className="gap-2"
           >
-            <HugeiconsIcon icon={Delete01Icon} size={20} strokeWidth={1.5} />{' '}
-            Delete
+            <HugeiconsIcon icon={ArchiveIcon} size={20} strokeWidth={1.5} />{' '}
+            Archive
           </MenuItem>
         </MenuContent>
       </MenuRoot>

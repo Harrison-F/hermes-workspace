@@ -529,6 +529,13 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         }
         case 'timeout': {
           if (
+            !fullTextRef.current.trim() &&
+            (lifecyclePhaseRef.current === 'accepted' ||
+              lifecyclePhaseRef.current === 'active' ||
+              lifecyclePhaseRef.current === 'handoff')
+          ) {
+            markFailed('Hermes accepted the message but returned no response')
+          } else if (
             lifecyclePhaseRef.current === 'accepted' ||
             lifecyclePhaseRef.current === 'active' ||
             lifecyclePhaseRef.current === 'handoff'
@@ -547,7 +554,7 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
             lifecyclePhaseRef.current === 'active' ||
             lifecyclePhaseRef.current === 'handoff'
           ) {
-            transitionToHandoff()
+            markFailed('Hermes accepted the message but returned no response')
           } else {
             markFailed('Hermes connection closed')
           }
@@ -694,7 +701,16 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
 
         const lifecyclePhase = lifecyclePhaseRef.current as StreamLifecyclePhase
         if (!finishedRef.current && lifecyclePhase !== 'handoff') {
-          finishStream()
+          const endedWithoutResponse =
+            !fullTextRef.current.trim() &&
+            lifecyclePhase !== 'complete' &&
+            lifecyclePhase !== 'error'
+
+          if (endedWithoutResponse) {
+            markFailed('Hermes accepted the message but returned no response')
+          } else {
+            finishStream()
+          }
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return

@@ -8,6 +8,8 @@ import { useSettingsStore } from '@/hooks/use-settings'
 import { useResolvedTheme } from '@/hooks/use-chat-settings'
 
 const TOUR_STORAGE_KEY = 'hermes-onboarding-completed'
+const ONBOARDING_WIZARD_KEY = 'hermes-onboarding-complete'
+const HERMES_SETUP_KEY = 'hermes-configured'
 
 // Accent color mapping to hex values
 const ACCENT_COLORS = {
@@ -41,14 +43,23 @@ export function OnboardingTour() {
     if (!mounted) return
 
     try {
-      const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY)
-      if (hasCompletedTour) return
+      const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === 'true'
+      const hasCompletedWizard =
+        localStorage.getItem(ONBOARDING_WIZARD_KEY) === 'true'
+
+      if (hasCompletedTour || hasCompletedWizard) return
 
       // Wait for setup wizard to finish before starting tour
-      const HERMES_SETUP_KEY = 'hermes-configured'
       const checkAndStart = () => {
-        const hermesConfigured =
-          localStorage.getItem(HERMES_SETUP_KEY) === 'true'
+        const hermesConfigured = localStorage.getItem(HERMES_SETUP_KEY) === 'true'
+        const wizardCompleted = localStorage.getItem(ONBOARDING_WIZARD_KEY) === 'true'
+        const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY) === 'true'
+
+        if (wizardCompleted || tourCompleted) {
+          setRun(false)
+          return true
+        }
+
         if (hermesConfigured) {
           setRun(true)
           return true
@@ -79,6 +90,7 @@ export function OnboardingTour() {
     if (shouldCompleteTour) {
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, 'true')
+        localStorage.setItem(ONBOARDING_WIZARD_KEY, 'true')
       } catch {
         // ignore
       }
@@ -157,6 +169,7 @@ export function OnboardingTour() {
       continuous
       showProgress
       showSkipButton
+      spotlightClicks
       callback={handleJoyrideCallback}
       styles={styles}
       locale={{

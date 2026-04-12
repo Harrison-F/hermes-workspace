@@ -20,6 +20,10 @@ import {
   getGatewayCapabilities,
   streamChat,
 } from '../../server/hermes-api'
+import {
+  appendWorkspaceMessage,
+  createWorkspaceSession,
+} from '../../server/workspace-session-store'
 import type {OpenAICompatContentPart, OpenAICompatMessage} from '../../server/openai-compat-api';
 // Hermes agent runs can take 5+ minutes with complex tool chains
 const SEND_STREAM_RUN_TIMEOUT_MS = 600_000
@@ -386,6 +390,11 @@ export const Route = createFileRoute('/api/send-stream')({
                   rawSessionKey ||
                   portableSessionKey
                 let accumulated = ''
+                await createWorkspaceSession({ friendlyId: portableFriendlyId })
+                await appendWorkspaceMessage(portableFriendlyId, {
+                  role: 'user',
+                  text: getChatMessage(message, attachments),
+                })
 
                 activeRunId = runId
                 registerActiveSendRun(runId)
@@ -446,6 +455,14 @@ export const Route = createFileRoute('/api/send-stream')({
                     }
                   }
 
+                  await appendWorkspaceMessage(portableFriendlyId, {
+                    role: 'assistant',
+                    text: accumulated,
+                    content: [
+                      ...(thinking ? [{ type: 'thinking', thinking }] : []),
+                      { type: 'text', text: accumulated },
+                    ],
+                  })
                   sendEvent('done', {
                     state: 'complete',
                     sessionKey: portableSessionKey,
@@ -461,8 +478,14 @@ export const Route = createFileRoute('/api/send-stream')({
                   closeStream()
                 } catch (err) {
                   if (!streamClosed) {
+                    const errorMessage = normalizeHermesErrorMessage(err)
+                    await appendWorkspaceMessage(portableFriendlyId, {
+                      role: 'assistant',
+                      text: errorMessage,
+                      content: [{ type: 'text', text: errorMessage }],
+                    })
                     sendEvent('error', {
-                      message: normalizeHermesErrorMessage(err),
+                      message: errorMessage,
                       sessionKey: portableSessionKey,
                       runId,
                     })
@@ -483,6 +506,9 @@ export const Route = createFileRoute('/api/send-stream')({
               }
 
               let startedSent = false
+              let completedSent = false
+              let errorSent = false
+              let sawAssistantContent = false
               // In enhanced mode, the HTTP stream response delivers all events
               // directly to useStreamingMessage. Skip publishChatEvent to prevent
               // useRealtimeChatHistory from creating duplicate message bubbles.
@@ -584,6 +610,7 @@ export const Route = createFileRoute('/api/send-stream')({
                       const content =
                         typeof data.content === 'string' ? data.content : ''
                       if (content) {
+                        sawAssistantContent = true
                         const translated = {
                           text: content,
                           fullReplace: true,
@@ -600,6 +627,7 @@ export const Route = createFileRoute('/api/send-stream')({
                       const delta =
                         typeof data.delta === 'string' ? data.delta : ''
                       if (!delta) return
+                      sawAssistantContent = true
                       const translated = {
                         text: delta,
                         sessionKey: sessionKeyFromEvent,
@@ -763,6 +791,7 @@ export const Route = createFileRoute('/api/send-stream')({
                     }
 
                     if (event === 'error') {
+                      errorSent = true
                       const errorMessage =
                         readString(
                           (data.error as Record<string, unknown> | undefined)
@@ -780,8 +809,26 @@ export const Route = createFileRoute('/api/send-stream')({
                     }
 
                     if (event === 'run.completed') {
+                      completedSent = true
+                      const output = readString(data.output)
+                      const failed = data.failed === true
+                      const errorMessage = readString(data.error)
+
+                      if (output) {
+                        sawAssistantContent = true
+                        const translatedChunk = {
+                          text: output,
+                          fullReplace: true,
+                          sessionKey: sessionKeyFromEvent,
+                          runId,
+                        }
+                        sendEvent('chunk', translatedChunk)
+                        skipPublish || publishChatEvent('chunk', translatedChunk)
+                      }
+
                       const translated = {
-                        state: 'complete',
+                        state: failed ? 'error' : 'complete',
+                        errorMessage: failed ? (errorMessage || output || 'Hermes run failed') : undefined,
                         sessionKey: sessionKeyFromEvent,
                         runId,
                       }
@@ -792,6 +839,16 @@ export const Route = createFileRoute('/api/send-stream')({
                   },
                 },
               )
+
+              if (!streamClosed && !completedSent && !errorSent && !sawAssistantContent) {
+                sendEvent('error', {
+                  message: 'Hermes accepted the message but returned no response',
+                  sessionKey,
+                  runId: activeRunId ?? undefined,
+                })
+                closeStream()
+                return
+              }
 
               // Set a timeout to close the stream if no completion event
               setTimeout(() => {

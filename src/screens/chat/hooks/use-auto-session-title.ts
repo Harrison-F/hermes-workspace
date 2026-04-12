@@ -10,6 +10,19 @@ import { textFromMessage } from '../utils'
 import type { ChatMessage, SessionMeta } from '../types'
 
 const MAX_TITLE_LENGTH = 50
+const TITLE_STOP_PREFIXES = [
+  /^(please\s+)?(help me|can you|could you|would you|will you)\s+/i,
+  /^(i need (help )?(with|to)?)\s+/i,
+  /^(let'?s|lets)\s+/i,
+  /^(please)\s+/i,
+  /^(question|request|task)\s*[:\-]\s*/i,
+]
+const TITLE_CLEANUP_PATTERNS = [
+  /^(here'?s|heres)\s+/i,
+  /^(for me|for us)\s+/i,
+  /\?+$/g,
+  /\.+$/g,
+]
 
 const GENERIC_TITLE_PATTERNS = [
   /^a new session/i,
@@ -32,6 +45,41 @@ function truncateTitle(value: string): string {
   const normalized = value.replace(/\s+/g, ' ').trim()
   if (normalized.length <= MAX_TITLE_LENGTH) return normalized
   return `${normalized.slice(0, MAX_TITLE_LENGTH - 1).trimEnd()}…`
+}
+
+function toTitleCase(value: string): string {
+  return value.replace(/\b([a-z])/g, (match) => match.toUpperCase())
+}
+
+function deriveSessionTitleFromFirstMessage(value: string): string {
+  let text = value.replace(/\s+/g, ' ').trim()
+  text = text.replace(/^['"`]+|['"`]+$/g, '')
+
+  for (const pattern of TITLE_STOP_PREFIXES) {
+    text = text.replace(pattern, '')
+  }
+  for (const pattern of TITLE_CLEANUP_PATTERNS) {
+    text = text.replace(pattern, '')
+  }
+
+  text = text.replace(/^(how do i|how can i)\s+/i, '')
+  text = text.replace(/^(what is|what are)\s+/i, '')
+  text = text.replace(/^(why is|why are)\s+/i, '')
+  text = text.replace(/^(fix|debug|review|write|draft|create|build|make)\s+/i, (match) =>
+    toTitleCase(match.trim()) + ' ',
+  )
+
+  const splitOn = text.search(/[.!?]|\s[-–—]\s/)
+  if (splitOn > 20) {
+    text = text.slice(0, splitOn)
+  }
+
+  text = text.replace(/^(the|a|an)\s+/i, '')
+  text = text.trim()
+  if (!text) return ''
+
+  const titled = /^[a-z]/.test(text) ? text[0].toUpperCase() + text.slice(1) : text
+  return truncateTitle(titled)
 }
 
 function getFirstUserMessage(messages: Array<ChatMessage>): string {
@@ -69,7 +117,7 @@ export function useAutoSessionTitle({
   const proposedTitle = useMemo(() => {
     const firstUserText = getFirstUserMessage(messages)
     if (!firstUserText) return ''
-    return truncateTitle(firstUserText)
+    return deriveSessionTitleFromFirstMessage(firstUserText)
   }, [messages])
 
   const shouldGenerate = useMemo(() => {

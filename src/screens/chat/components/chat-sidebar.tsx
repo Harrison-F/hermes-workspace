@@ -490,6 +490,8 @@ function usePersistedBool(key: string, defaultValue: boolean) {
 function ChatSidebarComponent({
   sessions,
   activeFriendlyId,
+  creatingSession,
+  onCreateSession,
   isCollapsed,
   onToggleCollapse,
   onSelectSession,
@@ -916,15 +918,45 @@ function ChatSidebarComponent({
       {/* ── New Session button ──────────────────────────────────────── */}
       {!isVisuallyCollapsed && (
         <div className="px-2 pb-1">
-          <Link
-            to="/chat/$sessionKey"
-            params={{ sessionKey: 'new' }}
+          <button
+            type="button"
+            onPointerDown={() => {
+              if (typeof window !== 'undefined') {
+                const current = Array.isArray((window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog)
+                  ? (window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog
+                  : []
+                ;(window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog = [
+                  ...current,
+                  {
+                    at: new Date().toISOString(),
+                    phase: 'button:pointerdown',
+                    detail: { pathname },
+                  },
+                ].slice(-20)
+              }
+            }}
             onClick={() => {
+              if (typeof window !== 'undefined') {
+                const current = Array.isArray((window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog)
+                  ? (window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog
+                  : []
+                ;(window as typeof window & { __workspaceNewSessionDebugLog?: Array<Record<string, unknown>> }).__workspaceNewSessionDebugLog = [
+                  ...current,
+                  {
+                    at: new Date().toISOString(),
+                    phase: 'button:click',
+                    detail: { pathname },
+                  },
+                ].slice(-20)
+              }
+              void onCreateSession()
               onSelectSession?.()
             }}
+            disabled={creatingSession}
             className={cn(
               buttonVariants({ variant: 'ghost', size: 'sm' }),
-              'w-full justify-start gap-2.5 px-3 py-2 text-primary-900 hover:bg-primary-200 dark:hover:bg-primary-800',
+              'w-full cursor-pointer justify-start gap-2.5 px-3 py-2 text-primary-900 hover:bg-primary-200 dark:hover:bg-primary-800',
+              creatingSession && 'opacity-60',
               isNewSessionActive &&
                 'bg-accent-500/10 text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-900/300/15',
             )}
@@ -937,7 +969,7 @@ function ChatSidebarComponent({
               className="size-5 shrink-0"
             />
             <span>New Session</span>
-          </Link>
+          </button>
         </div>
       )}
 
@@ -1172,6 +1204,10 @@ function areSidebarPropsEqual(
   if (prevProps.sessionsLoading !== nextProps.sessionsLoading) return false
   if (prevProps.sessionsFetching !== nextProps.sessionsFetching) return false
   if (prevProps.sessionsError !== nextProps.sessionsError) return false
+  if (prevProps.onCreateSession !== nextProps.onCreateSession) return false
+  if (prevProps.onToggleCollapse !== nextProps.onToggleCollapse) return false
+  if (prevProps.onSelectSession !== nextProps.onSelectSession) return false
+  if (prevProps.onActiveSessionDelete !== nextProps.onActiveSessionDelete) return false
   if (prevProps.onRetrySessions !== nextProps.onRetrySessions) return false
   if (!areSessionsEqual(prevProps.sessions, nextProps.sessions)) return false
   return true

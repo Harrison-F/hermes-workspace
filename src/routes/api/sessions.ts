@@ -13,6 +13,11 @@ import {
   toSessionSummary,
   updateSession,
 } from '../../server/hermes-api'
+import {
+  createWorkspaceSession,
+  listWorkspaceSessions,
+  updateWorkspaceSession,
+} from '../../server/workspace-session-store'
 import { createCapabilityUnavailablePayload } from '@/lib/feature-gates'
 
 export const Route = createFileRoute('/api/sessions')({
@@ -25,10 +30,11 @@ export const Route = createFileRoute('/api/sessions')({
         }
         await ensureGatewayProbed()
         if (!getGatewayCapabilities().sessions) {
+          const sessions = await listWorkspaceSessions(false)
           return json({
             ok: true,
-            sessions: [],
-            source: 'unavailable',
+            sessions,
+            source: 'workspace-local',
             message: SESSIONS_API_UNAVAILABLE_MESSAGE,
           })
         }
@@ -52,29 +58,26 @@ export const Route = createFileRoute('/api/sessions')({
         const csrfCheckPost = requireJsonContentType(request)
         if (csrfCheckPost) return csrfCheckPost
         await ensureGatewayProbed()
-        if (!getGatewayCapabilities().sessions) {
-          const friendlyId = randomUUID()
-          return json({
-            ...createCapabilityUnavailablePayload('sessions'),
-            ok: true,
-            sessionKey: friendlyId,
-            friendlyId,
-            persisted: false,
-          })
-        }
         try {
-          const body = (await request.json().catch(() => ({}))) as Record<
-            string,
-            unknown
-          >
-
+          const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
           const requestedLabel =
             typeof body.label === 'string' ? body.label.trim() : ''
           const label = requestedLabel || undefined
-
           const requestedFriendlyId =
             typeof body.friendlyId === 'string' ? body.friendlyId.trim() : ''
           const friendlyId = requestedFriendlyId || randomUUID()
+
+          if (!getGatewayCapabilities().sessions) {
+            const session = await createWorkspaceSession({ friendlyId, title: label })
+            return json({
+              ...createCapabilityUnavailablePayload('sessions'),
+              ok: true,
+              sessionKey: session.key,
+              friendlyId: session.friendlyId,
+              entry: session,
+              persisted: true,
+            })
+          }
 
           const requestedModel =
             typeof body.model === 'string' ? body.model.trim() : ''
@@ -110,22 +113,23 @@ export const Route = createFileRoute('/api/sessions')({
         if (csrfCheckPatch) return csrfCheckPatch
         await ensureGatewayProbed()
         if (!getGatewayCapabilities().sessions) {
-          const body = (await request.json().catch(() => ({}))) as Record<
-            string,
-            unknown
-          >
+          const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
           const rawSessionKey =
             typeof body.sessionKey === 'string' ? body.sessionKey.trim() : ''
           const rawFriendlyId =
             typeof body.friendlyId === 'string' ? body.friendlyId.trim() : ''
+          const label =
+            typeof body.label === 'string' ? body.label.trim() : undefined
           const sessionKey = rawSessionKey || rawFriendlyId || randomUUID()
+          const session = await updateWorkspaceSession(sessionKey, { title: label, archived: false })
 
           return json({
             ...createCapabilityUnavailablePayload('sessions'),
             ok: true,
-            sessionKey,
-            friendlyId: rawFriendlyId || sessionKey,
-            updated: false,
+            sessionKey: session.key,
+            friendlyId: session.friendlyId,
+            entry: session,
+            updated: true,
           })
         }
         try {
@@ -178,12 +182,16 @@ export const Route = createFileRoute('/api/sessions')({
           const rawSessionKey = url.searchParams.get('sessionKey') ?? ''
           const rawFriendlyId = url.searchParams.get('friendlyId') ?? ''
           const sessionKey = rawSessionKey.trim() || rawFriendlyId.trim()
+          if (!sessionKey) {
+            return json({ ok: false, error: 'sessionKey required' }, { status: 400 })
+          }
+          const session = await updateWorkspaceSession(sessionKey, { archived: true })
 
           return json({
             ...createCapabilityUnavailablePayload('sessions'),
             ok: true,
-            sessionKey,
-            deleted: false,
+            sessionKey: session.key,
+            archived: true,
           })
         }
         try {

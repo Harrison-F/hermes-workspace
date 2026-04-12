@@ -8,6 +8,7 @@ import {
   listSessions,
   toChatMessage,
 } from '../../server/hermes-api'
+import { getWorkspaceSessionMessages } from '../../server/workspace-session-store'
 import { resolveSessionKey } from '../../server/session-utils'
 import { isAuthenticated } from '@/server/auth-middleware'
 
@@ -20,11 +21,16 @@ export const Route = createFileRoute('/api/history')({
         }
         await ensureGatewayProbed()
         if (!getGatewayCapabilities().sessions) {
+          const url = new URL(request.url)
+          const requestedSessionKey = url.searchParams.get('sessionKey')?.trim() || ''
+          const messages = requestedSessionKey
+            ? await getWorkspaceSessionMessages(requestedSessionKey)
+            : []
           return json({
-            sessionKey: 'new',
-            sessionId: 'new',
-            messages: [],
-            source: 'unavailable',
+            sessionKey: requestedSessionKey || 'new',
+            sessionId: requestedSessionKey || 'new',
+            messages,
+            source: 'workspace-local',
             message: SESSIONS_API_UNAVAILABLE_MESSAGE,
           })
         }

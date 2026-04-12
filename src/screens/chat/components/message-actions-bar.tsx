@@ -72,46 +72,47 @@ export function MessageActionsBar({
   const positionClass = align === 'end' ? 'justify-end' : 'justify-start'
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2 text-xs text-primary-600 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 duration-100 ease-out',
-        forceVisible || isQueued || isFailed ? 'opacity-100' : 'opacity-0',
-        positionClass,
-      )}
-    >
-      {isFailed && onRetry && (
+    <div className={cn('flex items-center gap-2 text-xs text-primary-600', positionClass)}>
+      <div
+        className={cn(
+          'flex items-center gap-2 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 duration-100 ease-out',
+          forceVisible || isQueued || isFailed ? 'opacity-100' : 'opacity-0',
+        )}
+      >
+        {isFailed && onRetry && (
+          <TooltipProvider>
+            <TooltipRoot>
+              <TooltipTrigger
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              >
+                <HugeiconsIcon icon={RefreshIcon} size={14} strokeWidth={1.6} />
+                <span className="text-[11px] font-medium">Retry</span>
+              </TooltipTrigger>
+              <TooltipContent side="top">Resend failed message</TooltipContent>
+            </TooltipRoot>
+          </TooltipProvider>
+        )}
         <TooltipProvider>
           <TooltipRoot>
             <TooltipTrigger
               type="button"
-              onClick={onRetry}
-              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              onClick={() => {
+                handleCopy().catch(() => {})
+              }}
+              className="inline-flex items-center justify-center rounded border border-transparent bg-transparent p-1 text-primary-700 hover:text-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800"
             >
-              <HugeiconsIcon icon={RefreshIcon} size={14} strokeWidth={1.6} />
-              <span className="text-[11px] font-medium">Retry</span>
+              <HugeiconsIcon
+                icon={copied ? Tick02Icon : Copy01Icon}
+                size={16}
+                strokeWidth={1.6}
+              />
             </TooltipTrigger>
-            <TooltipContent side="top">Resend failed message</TooltipContent>
+            <TooltipContent side="top">Copy</TooltipContent>
           </TooltipRoot>
         </TooltipProvider>
-      )}
-      <TooltipProvider>
-        <TooltipRoot>
-          <TooltipTrigger
-            type="button"
-            onClick={() => {
-              handleCopy().catch(() => {})
-            }}
-            className="inline-flex items-center justify-center rounded border border-transparent bg-transparent p-1 text-primary-700 hover:text-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800"
-          >
-            <HugeiconsIcon
-              icon={copied ? Tick02Icon : Copy01Icon}
-              size={16}
-              strokeWidth={1.6}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="top">Copy</TooltipContent>
-        </TooltipRoot>
-      </TooltipProvider>
+      </div>
       <MessageTimestamp timestamp={timestamp} />
     </div>
   )

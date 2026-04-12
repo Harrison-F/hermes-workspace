@@ -12,13 +12,35 @@
  * Non-chat routes show the sub-page content.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+const NEW_SESSION_DEBUG_LIMIT = 20
+
+type NewSessionDebugEntry = {
+  at: string
+  phase: string
+  detail?: Record<string, unknown>
+}
+
+function appendNewSessionDebugEntry(entry: NewSessionDebugEntry) {
+  if (typeof window === 'undefined') return
+  type DebugWindow = Window & {
+    __workspaceNewSessionDebugLog?: Array<NewSessionDebugEntry>
+  }
+  const w = window as DebugWindow
+  const current = Array.isArray(w.__workspaceNewSessionDebugLog)
+    ? w.__workspaceNewSessionDebugLog
+    : []
+  w.__workspaceNewSessionDebugLog = [...current, entry].slice(-NEW_SESSION_DEBUG_LIMIT)
+}
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Suspense, lazy } from 'react'
 import type { SessionMeta } from '@/screens/chat/types'
 import type { AuthStatus } from '@/lib/hermes-auth'
+import { fetchHermesAuthStatus } from '@/lib/hermes-auth'
 import { cn } from '@/lib/utils'
-import { ConnectionStartupScreen } from '@/components/connection-startup-screen'
+import { writeTextToClipboard } from '@/lib/clipboard'
+import { toast } from '@/components/ui/toast'
 import { ChatSidebar } from '@/screens/chat/components/chat-sidebar'
 import { chatQueryKeys } from '@/screens/chat/chat-queries'
 import { useWorkspaceStore } from '@/stores/workspace-store'
@@ -58,31 +80,6 @@ async function fetchSessions(): Promise<SessionsListResponse> {
     : Array.isArray(data)
       ? data
       : []
-}
-
-const CONNECTION_VERIFIED_KEY = 'hermes-connection-verified'
-const CONNECTION_AUTH_STATUS_KEY = 'hermes-connection-auth-status'
-
-function loadCachedAuthStatus(): AuthStatus | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.sessionStorage.getItem(CONNECTION_AUTH_STATUS_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<AuthStatus>
-    if (
-      typeof parsed.authenticated === 'boolean' &&
-      typeof parsed.authRequired === 'boolean'
-    ) {
-      return {
-        authenticated: parsed.authenticated,
-        authRequired: parsed.authRequired,
-        error: typeof parsed.error === 'string' ? parsed.error : undefined,
-      }
-    }
-  } catch {
-    // Ignore bad session cache.
-  }
-  return null
 }
 
 export function WorkspaceShell() {
@@ -130,33 +127,18 @@ export function WorkspaceShell() {
     return -1
   }, [])
 
-  const isClient = typeof window !== 'undefined'
-  const cachedAuthStatus = isClient ? loadCachedAuthStatus() : null
-  // Both SSR and client start with the same value to avoid hydration mismatch.
-  // The ConnectionStartupScreen overlay verifies the real status on mount unless
-  // this tab already established a working connection.
-  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(cachedAuthStatus)
-  const [connectionVerified, setConnectionVerified] = useState(() => {
-    if (!isClient) return false
-    return window.sessionStorage.getItem(CONNECTION_VERIFIED_KEY) === 'true'
-  })
+  // Auth status is fetched in the background — never blocks rendering.
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null)
 
   const authState = {
-    checked: !isClient || connectionVerified,
+    checked: true,
     authenticated: authStatus?.authenticated ?? true,
     authRequired: authStatus?.authRequired ?? false,
   }
 
-  const handleStartupConnected = useCallback((status: AuthStatus) => {
-    setAuthStatus(status)
-    setConnectionVerified(true)
-    if (typeof window === 'undefined') return
-    try {
-      window.sessionStorage.setItem(CONNECTION_VERIFIED_KEY, 'true')
-      window.sessionStorage.setItem(CONNECTION_AUTH_STATUS_KEY, JSON.stringify(status))
-    } catch {
-      // Ignore sessionStorage failures.
-    }
+  // Background auth check — populates authStatus without blocking UI.
+  useEffect(() => {
+    fetchHermesAuthStatus().then(setAuthStatus).catch(() => {})
   }, [])
 
   // Derive active session from URL
@@ -175,7 +157,7 @@ export function WorkspaceShell() {
 
   const chatMatch = pathname.match(/^\/chat\/(.+)$/)
   const activeFriendlyId = chatMatch ? chatMatch[1] : 'main'
-  const isOnChatRoute = Boolean(chatMatch) || pathname === '/new'
+  const isOnChatRoute = Boolean(chatMatch) || pathname === '/chat' || pathname === '/chat/' || pathname === '/chat/new'
   const isOnTerminalRoute = pathname.startsWith('/terminal')
   const hideChatSidebar = isOnChatRoute && chatFocusMode
   const showDesktopSidebarBackdrop =
@@ -202,14 +184,80 @@ export function WorkspaceShell() {
     void sessionsQuery.refetch()
   }, [sessionsQuery])
 
-  const startNewChat = useCallback(() => {
+  const startNewChat = useCallback(async () => {
+    appendNewSessionDebugEntry({
+      at: new Date().toISOString(),
+      phase: 'startNewChat:invoked',
+      detail: { pathname, creatingSession },
+    })
     setCreatingSession(true)
-    navigate({ to: '/chat/$sessionKey', params: { sessionKey: 'new' } }).then(
-      () => {
-        setCreatingSession(false)
-      },
-    )
-  }, [navigate])
+    try {
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:request:start',
+      })
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:request:response',
+        detail: { ok: res.ok, status: res.status },
+      })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
+      const data = (await res.json()) as {
+        sessionKey?: string
+        friendlyId?: string
+      }
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:request:parsed',
+        detail: data as Record<string, unknown>,
+      })
+      const sessionKey =
+        typeof data.friendlyId === 'string' && data.friendlyId.trim().length > 0
+          ? data.friendlyId.trim()
+          : typeof data.sessionKey === 'string' && data.sessionKey.trim().length > 0
+            ? data.sessionKey.trim()
+            : 'new'
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:refetch:start',
+        detail: { sessionKey },
+      })
+      await sessionsQuery.refetch()
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:navigate:start',
+        detail: { sessionKey },
+      })
+      await navigate({ to: '/chat/$sessionKey', params: { sessionKey } })
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:navigate:done',
+        detail: { sessionKey },
+      })
+    } catch (error) {
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:error',
+        detail: {
+          message: error instanceof Error ? error.message : String(error),
+        },
+      })
+      throw error
+    } finally {
+      setCreatingSession(false)
+      appendNewSessionDebugEntry({
+        at: new Date().toISOString(),
+        phase: 'startNewChat:complete',
+      })
+    }
+  }, [creatingSession, navigate, pathname, sessionsQuery])
 
   const handleSelectSession = useCallback(() => {
     // On mobile, collapse sidebar after selecting
@@ -221,6 +269,147 @@ export function WorkspaceShell() {
   const handleActiveSessionDelete = useCallback(() => {
     navigate({ to: '/chat/$sessionKey', params: { sessionKey: 'main' } })
   }, [navigate])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    type WorkspaceDebugWindow = typeof window & {
+      __dumpWorkspaceSessionDebug?: () => Promise<Record<string, unknown>>
+      __copyWorkspaceSessionDebug?: () => Promise<string>
+    }
+
+    const w = window as WorkspaceDebugWindow
+
+    w.__dumpWorkspaceSessionDebug = async () => {
+      const sessionsPayload = await fetch('/api/sessions')
+        .then(async (res) => ({ status: res.status, body: await res.json().catch(() => null) }))
+        .catch((error) => ({ error: String(error) }))
+
+      const newSessionButton = document.querySelector('[data-tour="new-session"]') as
+        | HTMLButtonElement
+        | null
+      const buttonRect = newSessionButton?.getBoundingClientRect()
+      const buttonCenter =
+        buttonRect && buttonRect.width > 0 && buttonRect.height > 0
+          ? {
+              x: Math.round(buttonRect.left + buttonRect.width / 2),
+              y: Math.round(buttonRect.top + buttonRect.height / 2),
+            }
+          : null
+      const topElementAtButtonCenter = buttonCenter
+        ? document.elementFromPoint(buttonCenter.x, buttonCenter.y)
+        : null
+      const joyrideOverlay = document.querySelector('.react-joyride__overlay') as HTMLElement | null
+      const joyrideSpotlight = document.querySelector('.react-joyride__spotlight') as HTMLElement | null
+      const sidebarContainer = document.querySelector('[data-tour="sidebar-container"]') as HTMLElement | null
+      const newSessionDebugLog = Array.isArray(w.__workspaceNewSessionDebugLog)
+        ? w.__workspaceNewSessionDebugLog
+        : []
+
+      return {
+        capturedAt: new Date().toISOString(),
+        pathname,
+        activeFriendlyId,
+        isOnChatRoute,
+        creatingSession,
+        sessionsCount: sessions.length,
+        sessions,
+        sessionsLoading,
+        sessionsFetching,
+        sessionsError,
+        localStorage: {
+          lastSession: localStorage.getItem('hermes-last-session'),
+          onboardingComplete: localStorage.getItem('hermes-onboarding-complete'),
+          onboardingCompleted: localStorage.getItem('hermes-onboarding-completed'),
+          hermesConfigured: localStorage.getItem('hermes-configured'),
+        },
+        sidebar: {
+          collapsed: sidebarCollapsed,
+          focusMode: chatFocusMode,
+          sidebarContainerPointerEvents: sidebarContainer
+            ? getComputedStyle(sidebarContainer).pointerEvents
+            : null,
+        },
+        newSessionButton: {
+          exists: Boolean(newSessionButton),
+          disabled: newSessionButton?.disabled ?? null,
+          text: newSessionButton?.textContent?.trim() ?? null,
+          rect: buttonRect
+            ? {
+                left: Math.round(buttonRect.left),
+                top: Math.round(buttonRect.top),
+                width: Math.round(buttonRect.width),
+                height: Math.round(buttonRect.height),
+              }
+            : null,
+          computed: newSessionButton
+            ? {
+                pointerEvents: getComputedStyle(newSessionButton).pointerEvents,
+                opacity: getComputedStyle(newSessionButton).opacity,
+                visibility: getComputedStyle(newSessionButton).visibility,
+                zIndex: getComputedStyle(newSessionButton).zIndex,
+              }
+            : null,
+          center: buttonCenter,
+          topElementAtCenter: topElementAtButtonCenter
+            ? {
+                tagName: topElementAtButtonCenter.tagName,
+                className: topElementAtButtonCenter.className,
+                dataTour: topElementAtButtonCenter.getAttribute('data-tour'),
+                text: topElementAtButtonCenter.textContent?.trim()?.slice(0, 120) ?? null,
+              }
+            : null,
+        },
+        onboardingTour: {
+          active: Boolean(joyrideOverlay || joyrideSpotlight),
+          overlayPresent: Boolean(joyrideOverlay),
+          overlayPointerEvents: joyrideOverlay
+            ? getComputedStyle(joyrideOverlay).pointerEvents
+            : null,
+          spotlightPresent: Boolean(joyrideSpotlight),
+          spotlightPointerEvents: joyrideSpotlight
+            ? getComputedStyle(joyrideSpotlight).pointerEvents
+            : null,
+        },
+        newSessionDebugLog,
+        sessionsApi: sessionsPayload,
+      }
+    }
+
+    w.__copyWorkspaceSessionDebug = async () => {
+      const dump = JSON.stringify(await w.__dumpWorkspaceSessionDebug?.(), null, 2)
+      await writeTextToClipboard(dump)
+      return dump
+    }
+
+    const handleDebugShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.key !== 'J') {
+        return
+      }
+      event.preventDefault()
+      void w.__copyWorkspaceSessionDebug?.()
+        .then(() => toast('Copied workspace session debug dump', { type: 'success' }))
+        .catch(() => toast('Failed to copy workspace session debug dump', { type: 'error' }))
+    }
+
+    window.addEventListener('keydown', handleDebugShortcut)
+    return () => {
+      window.removeEventListener('keydown', handleDebugShortcut)
+      delete w.__dumpWorkspaceSessionDebug
+      delete w.__copyWorkspaceSessionDebug
+    }
+  }, [
+    activeFriendlyId,
+    chatFocusMode,
+    creatingSession,
+    isOnChatRoute,
+    pathname,
+    sessions,
+    sessionsError,
+    sessionsFetching,
+    sessionsLoading,
+    sidebarCollapsed,
+  ])
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)')
@@ -296,7 +485,7 @@ export function WorkspaceShell() {
         className="relative overflow-hidden theme-bg theme-text"
         style={shellStyle}
       >
-        <HermesReconnectBanner enabled={authState.checked} />
+        <HermesReconnectBanner enabled />
         {/* Electron: native-style title bar (absolute over the padding) */}
         {isElectron && (
           <div
@@ -411,9 +600,6 @@ export function WorkspaceShell() {
           />
         ) : null}
 
-        {!authState.checked ? (
-          <ConnectionStartupScreen onConnected={handleStartupConnected} />
-        ) : null}
       </div>
 
       <MobileHamburgerMenu />

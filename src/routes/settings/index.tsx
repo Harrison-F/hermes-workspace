@@ -1,6 +1,7 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import CloudIcon from '@hugeicons/core-free-icons/CloudIcon'
+import File01Icon from '@hugeicons/core-free-icons/File01Icon'
 import MessageMultiple01Icon from '@hugeicons/core-free-icons/MessageMultiple01Icon'
 import Notification03Icon from '@hugeicons/core-free-icons/Notification03Icon'
 import PaintBoardIcon from '@hugeicons/core-free-icons/PaintBoardIcon'
@@ -241,6 +242,7 @@ function SettingsRow({ label, description, children }: RowProps) {
 type SettingsSectionId =
   | 'profile'
   | 'appearance'
+  | 'opening'
   | 'chat'
   | 'hermes'
   | 'notifications'
@@ -253,6 +255,7 @@ type SettingsNavItem = {
 
 const SETTINGS_NAV_ITEMS: Array<SettingsNavItem> = [
   { id: 'hermes', label: 'Hermes Agent' },
+  { id: 'opening', label: 'Opening Screen' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'chat', label: 'Chat' },
   { id: 'notifications', label: 'Notifications' },
@@ -266,6 +269,7 @@ function SettingsRoute() {
   const [availableModels, setAvailableModels] = useState<
     Array<{ id: string; label: string }>
   >([])
+  const [availableBoards, setAvailableBoards] = useState<Array<{ id: string; name: string }>>([])
   const [modelsError, setModelsError] = useState(false)
 
   useEffect(() => {
@@ -289,7 +293,28 @@ function SettingsRoute() {
         setModelsError(true)
       }
     }
+
+    async function fetchBoards() {
+      try {
+        const res = await fetch('/api/kanban-boards')
+        if (!res.ok) {
+          return
+        }
+        const data = await res.json()
+        const boards = Array.isArray(data) ? data : []
+        setAvailableBoards(
+          boards.map((board: any) => ({
+            id: board.id || '',
+            name: board.name || 'Untitled board',
+          })),
+        )
+      } catch {
+        // ignore board settings fetch errors
+      }
+    }
+
     void fetchModels()
+    void fetchBoards()
   }, [])
 
   const [activeSection, setActiveSection] =
@@ -352,6 +377,93 @@ function SettingsRoute() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
           {/* ── Hermes Agent ──────────────────────────────────── */}
           {activeSection === 'hermes' && <HermesConfigSection />}
+
+          {/* ── Opening Screen ─────────────────────────────────── */}
+          {activeSection === 'opening' && (
+            <SettingsSection
+              title="Opening Screen"
+              description="Choose where Hermes Workspace should open by default."
+              icon={CloudIcon}
+            >
+              <SettingsRow
+                label="Default destination"
+                description="Boards opens a specific board. Chat and Files open those workspaces directly."
+              >
+                <div className="flex w-full flex-col gap-3">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition-colors hover:bg-primary-50">
+                    <input
+                      type="radio"
+                      name="opening-screen"
+                      checked={settings.openingScreenMode === 'convon'}
+                      onChange={() => updateSettings({ openingScreenMode: 'convon' })}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-primary-900">Boards</div>
+                      <div className="text-xs text-primary-600">
+                        Open a specific board on launch.
+                      </div>
+                      {settings.openingScreenMode === 'convon' && (
+                        <div className="mt-3">
+                          <select
+                            value={settings.openingConvoBoardId}
+                            onChange={(e) =>
+                              updateSettings({
+                                openingScreenMode: 'convon',
+                                openingConvoBoardId: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-accent-400"
+                          >
+                            <option value="">HRF (default)</option>
+                            {availableBoards.map((board) => (
+                              <option key={board.id} value={board.id}>
+                                {board.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition-colors hover:bg-primary-50">
+                    <input
+                      type="radio"
+                      name="opening-screen"
+                      checked={settings.openingScreenMode === 'chat'}
+                      onChange={() => updateSettings({ openingScreenMode: 'chat' })}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 font-medium text-primary-900">
+                        <HugeiconsIcon icon={MessageMultiple01Icon} size={14} />
+                        Chat
+                      </div>
+                      <div className="text-xs text-primary-600">Open the chat workspace.</div>
+                    </div>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition-colors hover:bg-primary-50">
+                    <input
+                      type="radio"
+                      name="opening-screen"
+                      checked={settings.openingScreenMode === 'files'}
+                      onChange={() => updateSettings({ openingScreenMode: 'files' })}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 font-medium text-primary-900">
+                        <HugeiconsIcon icon={File01Icon} size={14} />
+                        Files
+                      </div>
+                      <div className="text-xs text-primary-600">Open the files workspace.</div>
+                    </div>
+                  </label>
+                </div>
+              </SettingsRow>
+            </SettingsSection>
+          )}
 
           {/* ── Appearance ──────────────────────────────────────── */}
           {activeSection === 'appearance' && (

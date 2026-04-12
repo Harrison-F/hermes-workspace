@@ -191,6 +191,8 @@ function ChatHeaderComponent({
 
   const startTitleEdit = useCallback(() => {
     if (!canRenameTitle || renamingTitle) return
+    setSessionPopoverOpen(false)
+    setSessionSearch('')
     setTitleDraft(activeTitle)
     setIsEditingTitle(true)
   }, [activeTitle, canRenameTitle, renamingTitle])
@@ -326,16 +328,22 @@ function ChatHeaderComponent({
           />
         ) : (
           <div className="relative flex items-center gap-1" ref={sessionPopoverRef}>
-            <button type="button" onClick={() => setSessionPopoverOpen((p) => !p)}
-              className="min-w-0 truncate text-sm font-medium text-balance hover:text-accent-600 transition-colors rounded-sm text-left"
-              title="Click to switch session">
+            <button
+              type="button"
+              onDoubleClick={(event) => {
+                if (!canRenameTitle || renamingTitle) return
+                event.preventDefault()
+                event.stopPropagation()
+                startTitleEdit()
+              }}
+              className={cn(
+                'min-w-0 truncate rounded-sm text-left text-sm font-medium text-balance transition-colors hover:text-accent-600',
+                canRenameTitle ? 'cursor-text' : 'cursor-default',
+              )}
+              title={canRenameTitle ? 'Double-click to rename' : activeTitle}
+            >
               {activeTitle}
             </button>
-            {canRenameTitle && !renamingTitle && (
-              <button type="button" onClick={startTitleEdit}
-                className="text-xs text-primary-400 opacity-0 group-hover:opacity-100 hover:text-primary-600 transition-opacity shrink-0"
-                title="Rename session">✏️</button>
-            )}
             {sessionPopoverOpen && (
               <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-80 rounded-xl border border-primary-200 bg-surface shadow-lg overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-2">

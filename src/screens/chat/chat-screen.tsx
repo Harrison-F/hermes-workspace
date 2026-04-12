@@ -444,7 +444,7 @@ export function ChatScreen({
   useTapDebug(mainRef, { label: 'chat-main' })
   const chatMode = useChatMode()
   const isPortableMode = chatMode === 'portable'
-  const portableChatFriendlyId = isPortableMode ? 'main' : activeFriendlyId
+  const portableChatFriendlyId = activeFriendlyId
   const [waitingForResponse, setWaitingForResponse] = useState(false)
   const debugLogRef = useRef<Array<Record<string, unknown>>>([])
   const [liveToolActivity, setLiveToolActivity] = useState<
@@ -1461,7 +1461,9 @@ export function ChatScreen({
       : null
   const serverError = statusError?.message ?? sessionsError ?? historyError
   const serverErrorStatus = statusError?.status
-  const showErrorNotice = Boolean(serverError) && !isNewChat
+  const effectiveError = error ?? serverError
+  const effectiveErrorStatus = error ? undefined : serverErrorStatus
+  const showErrorNotice = Boolean(effectiveError) && !isNewChat
   const handleRefetch = useCallback(() => {
     void statusQuery.refetch()
     void sessionsQuery.refetch()
@@ -2391,16 +2393,16 @@ export function ChatScreen({
   const historyEmpty = !historyLoading && finalDisplayMessages.length === 0
   const errorNotice = useMemo(() => {
     if (!showErrorNotice) return null
-    if (!serverError) return null
+    if (!effectiveError) return null
     return (
       <ConnectionStatusMessage
         state="error"
-        error={serverError}
-        status={serverErrorStatus}
+        error={effectiveError}
+        status={effectiveErrorStatus}
         onRetry={handleRefetch}
       />
     )
-  }, [serverError, serverErrorStatus, handleRefetch, showErrorNotice])
+  }, [effectiveError, effectiveErrorStatus, handleRefetch, showErrorNotice])
 
   const mobileHeaderStatus: 'connected' | 'connecting' | 'disconnected' =
     connectionState === 'connected'

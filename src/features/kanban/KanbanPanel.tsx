@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import type { KanbanTask, TaskStatus, TaskVisibility } from './types'
 import { COLUMN_LABELS, COLUMNS, VISIBILITY_LABELS } from './types'
-import { useKanban } from './hooks/useKanban'
+import { useKanban, type KanbanInitialData } from './hooks/useKanban'
 import { KanbanHeader } from './KanbanHeader'
 import { KanbanBoard } from './KanbanBoard'
 import { CreateTaskDialog } from './CreateTaskDialog'
@@ -74,7 +74,11 @@ export function buildTaskContextMenuSections(task: KanbanTask): ContextMenuSecti
   ]
 }
 
-export function KanbanPanel() {
+interface KanbanPanelProps {
+  initialData?: KanbanInitialData | null
+}
+
+export function KanbanPanel({ initialData }: KanbanPanelProps = {}) {
   const {
     boards,
     activeBoardId,
@@ -93,7 +97,7 @@ export function KanbanPanel() {
     resetFilters,
     loading,
     error,
-  } = useKanban()
+  } = useKanban({ initialData })
 
   // Dialogs & drawers
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
