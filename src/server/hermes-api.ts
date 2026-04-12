@@ -57,6 +57,14 @@ export type HermesConfig = {
   [key: string]: unknown
 }
 
+type ExtractedMediaAttachment = {
+  id: string
+  name: string
+  contentType: string
+  url: string
+  previewUrl: string
+}
+
 // ── Helpers ───────────────────────────────────────────────────────
 
 async function hermesGet<T>(path: string): Promise<T> {
@@ -92,6 +100,71 @@ async function hermesPatch<T>(path: string, body: unknown): Promise<T> {
     throw new Error(`Hermes API PATCH ${path}: ${res.status} ${text}`)
   }
   return res.json() as Promise<T>
+}
+
+function normalizeLocalMediaUrl(pathOrUrl: string): string {
+  const trimmed = pathOrUrl.trim()
+  if (!trimmed) return ''
+  if (/^data:/i.test(trimmed) || /^https?:/i.test(trimmed) || /^blob:/i.test(trimmed)) {
+    return trimmed
+  }
+  if (trimmed.startsWith('/api/')) return trimmed
+  if (trimmed.startsWith('file://')) {
+    return `/api/local-media?path=${encodeURIComponent(trimmed.slice('file://'.length))}`
+  }
+  if (trimmed.startsWith('/')) {
+    return `/api/local-media?path=${encodeURIComponent(trimmed)}`
+  }
+  return trimmed
+}
+
+function inferMediaName(pathOrUrl: string, fallbackIndex: number): string {
+  const trimmed = pathOrUrl.trim()
+  const withoutQuery = trimmed.split('?')[0]?.split('#')[0] ?? trimmed
+  const leaf = withoutQuery.split('/').pop()?.trim()
+  if (leaf) return leaf
+  return `media-${fallbackIndex + 1}`
+}
+
+function inferMediaContentType(pathOrUrl: string): string {
+  const normalized = pathOrUrl.trim().toLowerCase().split('?')[0]?.split('#')[0] ?? ''
+  if (normalized.endsWith('.png')) return 'image/png'
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg'
+  if (normalized.endsWith('.webp')) return 'image/webp'
+  if (normalized.endsWith('.gif')) return 'image/gif'
+  if (normalized.endsWith('.svg')) return 'image/svg+xml'
+  if (normalized.endsWith('.bmp')) return 'image/bmp'
+  return 'application/octet-stream'
+}
+
+function extractMediaAttachments(text: string): {
+  cleanedText: string
+  attachments: Array<ExtractedMediaAttachment>
+} {
+  if (!text.includes('MEDIA:')) {
+    return { cleanedText: text, attachments: [] }
+  }
+
+  const attachments: Array<ExtractedMediaAttachment> = []
+  const cleanedText = text
+    .replace(/^MEDIA:(\S+)\s*$/gm, (_match, rawPath: string) => {
+      const pathOrUrl = String(rawPath ?? '').trim()
+      if (!pathOrUrl) return ''
+      const url = normalizeLocalMediaUrl(pathOrUrl)
+      if (!url) return ''
+      attachments.push({
+        id: `media-${attachments.length + 1}`,
+        name: inferMediaName(pathOrUrl, attachments.length),
+        contentType: inferMediaContentType(pathOrUrl),
+        url,
+        previewUrl: url,
+      })
+      return ''
+    })
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  return { cleanedText, attachments }
 }
 
 async function hermesDeleteReq(path: string): Promise<void> {
@@ -188,6 +261,9 @@ export function toChatMessage(
   msg: HermesMessage,
   options?: { historyIndex?: number },
 ): Record<string, unknown> {
+  const rawText = msg.content || ''
+  const { cleanedText, attachments } = extractMediaAttachments(rawText)
+
   // Accept either parsed arrays from FastAPI or legacy JSON strings.
   let toolCalls: Array<unknown> | undefined
   if (Array.isArray(msg.tool_calls)) {
@@ -237,19 +313,19 @@ export function toChatMessage(
       type: 'tool_result',
       toolCallId: msg.tool_call_id,
       toolName: msg.tool_name,
-      text: msg.content || '',
+      text: cleanedText,
     })
   }
 
-  if (msg.content && msg.role !== 'tool') {
-    content.push({ type: 'text', text: msg.content })
+  if (cleanedText && msg.role !== 'tool') {
+    content.push({ type: 'text', text: cleanedText })
   }
 
   return {
     id: `msg-${msg.id}`,
     role: msg.role,
     content,
-    text: msg.content || '',
+    text: cleanedText,
     timestamp: msg.timestamp ? msg.timestamp * 1000 : Date.now(),
     createdAt: msg.timestamp
       ? new Date(msg.timestamp * 1000).toISOString()
@@ -261,6 +337,7 @@ export function toChatMessage(
     ...(streamToolCallsArr.length > 0
       ? { streamToolCalls: streamToolCallsArr }
       : {}),
+    ...(attachments.length > 0 ? { attachments } : {}),
   }
 }
 

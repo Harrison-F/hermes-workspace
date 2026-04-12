@@ -1065,12 +1065,15 @@ export function ChatScreen({
         if (msg.__streamingStatus === 'streaming') return true
         if ((msg as any).__optimisticId && !msg.content?.length) return true
         if (textFromMessage(msg).trim().length > 0) return true
+        const attachments = Array.isArray(msg.attachments) ? msg.attachments : []
+        if (attachments.length > 0) return true
         const content = Array.isArray(msg.content) ? msg.content : []
         const hasToolCalls = content.some((part) => part.type === 'toolCall')
+        const hasInlineImages = content.some((part) => part.type === 'image')
         const hasStreamToolCalls =
           Array.isArray((msg as any).__streamToolCalls) &&
           (msg as any).__streamToolCalls.length > 0
-        return hasToolCalls || hasStreamToolCalls
+        return hasToolCalls || hasInlineImages || hasStreamToolCalls
       }
       return false
     })
