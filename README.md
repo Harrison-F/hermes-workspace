@@ -87,10 +87,12 @@ cd hermes-workspace
 pnpm install
 cp .env.example .env
 printf '\nHERMES_API_URL=http://127.0.0.1:8642\n' >> .env
-pnpm dev                   # Starts on http://localhost:3000
+pnpm dev                   # Default local dev port is http://localhost:3000
 ```
 
 > **Verify:** Open `http://localhost:3000` and complete the onboarding flow. The default landing page is the board at `/board`, but chat, files, terminal, jobs, memory, and skills are all available from the sidebar. First verify the backend connection and basic chat; enhanced workspace features appear automatically when Hermes APIs are available.
+>
+> **Harrison local-instance note:** the installed Brave/Tailscale-served Hermes Workspace instance is `https://harrisons-macbook-air.tail323ae0.ts.net:10000`, which is proxied by Tailscale Serve to `http://127.0.0.1:3002`. Use port `3002` when you want changes to appear in Harrison’s installed Brave app. Port `3000` is fine for separate local repro/dev work, but it is not the same instance unless you explicitly repoint Tailscale Serve.
 
 ### Environment Variables
 
@@ -213,10 +215,14 @@ Hermes Workspace is a **Progressive Web App (PWA)** — install it for the full 
 
 ### 🖥️ Desktop (macOS / Windows / Linux)
 
-1. Open Hermes Workspace in **Chrome** or **Edge** at `http://localhost:3000`
-2. Click the **install icon** (⊕) in the address bar
-3. Click **Install** — Hermes Workspace opens as a standalone desktop app
+1. Open Hermes Workspace in **Chrome**, **Edge**, or **Brave**
+2. Use the URL for the instance you actually want the installed app to track
+   - standard local setup: `http://localhost:3000`
+   - Harrison’s Tailscale-served app: `https://harrisons-macbook-air.tail323ae0.ts.net:10000` (served from local port `3002`)
+3. Click the install icon/menu option and install the app
 4. Pin to Dock / Taskbar for quick access
+
+> **Important:** the installed app follows the origin you installed. If you install from the Tailscale URL on `:10000`, updates will come from the local process serving port `3002`, not from a separate Vite server on `3000`.
 
 > **macOS users:** After installing, you can also add it to your Launchpad.
 

@@ -30,7 +30,6 @@ import { LoginScreen } from '@/components/auth/login-screen'
 import { MobileTabBar } from '@/components/mobile-tab-bar'
 import { MobileHamburgerMenu } from '@/components/mobile-hamburger-menu'
 import { MobilePageHeader } from '@/components/mobile-page-header'
-import { HermesOnboarding } from '@/components/onboarding/hermes-onboarding'
 import { MobileTerminalInput } from '@/components/terminal/mobile-terminal-input'
 import { HermesReconnectBanner } from '@/components/hermes-reconnect-banner'
 import { useMobileKeyboard } from '@/hooks/use-mobile-keyboard'
@@ -59,6 +58,31 @@ async function fetchSessions(): Promise<SessionsListResponse> {
     : Array.isArray(data)
       ? data
       : []
+}
+
+const CONNECTION_VERIFIED_KEY = 'hermes-connection-verified'
+const CONNECTION_AUTH_STATUS_KEY = 'hermes-connection-auth-status'
+
+function loadCachedAuthStatus(): AuthStatus | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(CONNECTION_AUTH_STATUS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<AuthStatus>
+    if (
+      typeof parsed.authenticated === 'boolean' &&
+      typeof parsed.authRequired === 'boolean'
+    ) {
+      return {
+        authenticated: parsed.authenticated,
+        authRequired: parsed.authRequired,
+        error: typeof parsed.error === 'string' ? parsed.error : undefined,
+      }
+    }
+  } catch {
+    // Ignore bad session cache.
+  }
+  return null
 }
 
 export function WorkspaceShell() {
@@ -107,10 +131,15 @@ export function WorkspaceShell() {
   }, [])
 
   const isClient = typeof window !== 'undefined'
+  const cachedAuthStatus = isClient ? loadCachedAuthStatus() : null
   // Both SSR and client start with the same value to avoid hydration mismatch.
-  // The ConnectionStartupScreen overlay verifies the real status on mount.
-  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null)
-  const [connectionVerified, setConnectionVerified] = useState(false)
+  // The ConnectionStartupScreen overlay verifies the real status on mount unless
+  // this tab already established a working connection.
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(cachedAuthStatus)
+  const [connectionVerified, setConnectionVerified] = useState(() => {
+    if (!isClient) return false
+    return window.sessionStorage.getItem(CONNECTION_VERIFIED_KEY) === 'true'
+  })
 
   const authState = {
     checked: !isClient || connectionVerified,
@@ -121,6 +150,13 @@ export function WorkspaceShell() {
   const handleStartupConnected = useCallback((status: AuthStatus) => {
     setAuthStatus(status)
     setConnectionVerified(true)
+    if (typeof window === 'undefined') return
+    try {
+      window.sessionStorage.setItem(CONNECTION_VERIFIED_KEY, 'true')
+      window.sessionStorage.setItem(CONNECTION_AUTH_STATUS_KEY, JSON.stringify(status))
+    } catch {
+      // Ignore sessionStorage failures.
+    }
   }, [])
 
   // Derive active session from URL
@@ -383,7 +419,6 @@ export function WorkspaceShell() {
       <MobileHamburgerMenu />
       {/* System metrics footer removed */}
       <CommandPalette pathname={pathname} sessions={sessions} />
-      <HermesOnboarding />
     </>
   )
 }

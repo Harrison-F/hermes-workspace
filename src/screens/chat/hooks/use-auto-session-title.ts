@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { chatQueryKeys } from '../chat-queries'
 import {
@@ -55,12 +55,6 @@ type UseAutoSessionTitleInput = {
   enabled: boolean
 }
 
-type UpdateTitlePayload = {
-  friendlyId: string
-  sessionKey: string
-  title: string
-}
-
 export function useAutoSessionTitle({
   friendlyId,
   sessionKey,
@@ -84,10 +78,8 @@ export function useAutoSessionTitle({
     if (!sessionKey || sessionKey === 'new') return false
     if (!proposedTitle) return false
     if (!hasAssistantResponse(messages)) return false
-    if (activeSession?.label && !isGenericTitle(activeSession.label))
-      return false
-    if (activeSession?.title && !isGenericTitle(activeSession.title))
-      return false
+    if (activeSession?.label && !isGenericTitle(activeSession.label)) return false
+    if (activeSession?.title && !isGenericTitle(activeSession.title)) return false
     if (
       activeSession?.derivedTitle &&
       !isGenericTitle(activeSession.derivedTitle)
@@ -154,48 +146,17 @@ export function useAutoSessionTitle({
     )
   }
 
-  const mutation = useMutation({
-    mutationFn: async (payload: UpdateTitlePayload) => {
-      const res = await fetch('/api/sessions', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          sessionKey: payload.sessionKey,
-          friendlyId: payload.friendlyId,
-          label: payload.title,
-        }),
-      })
-      if (!res.ok) {
-        const message = await res.text().catch(() => 'Failed to update title')
-        throw new Error(message)
-      }
-      return payload
-    },
-    onSuccess: (payload) => {
-      applyTitle(payload.friendlyId, payload.title, 'auto')
-      void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions })
-    },
-    onError: (error, payload) => {
-      updateSessionTitleState(payload.friendlyId, {
-        status: 'error',
-        error: error instanceof Error ? error.message : String(error ?? ''),
-      })
-    },
-  })
-
-  const { mutate, isPending } = mutation
-
   useEffect(() => {
     if (!shouldGenerate) return
-    if (isPending) return
     const signature = `${sessionKey}:${proposedTitle}`
     if (lastAttemptRef.current[friendlyId] === signature) return
     lastAttemptRef.current[friendlyId] = signature
     updateSessionTitleState(friendlyId, { status: 'generating', error: null })
-    mutate({
-      friendlyId,
-      sessionKey: sessionKey ?? friendlyId,
-      title: proposedTitle,
-    })
-  }, [friendlyId, isPending, mutate, proposedTitle, sessionKey, shouldGenerate])
+    applyTitle(friendlyId, proposedTitle, 'auto')
+  }, [
+    friendlyId,
+    proposedTitle,
+    sessionKey,
+    shouldGenerate,
+  ])
 }

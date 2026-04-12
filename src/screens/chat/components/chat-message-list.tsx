@@ -35,7 +35,7 @@ import { CHAT_OPEN_MESSAGE_SEARCH_EVENT } from '@/screens/chat/chat-events'
  *  indicator disappears — prevents a flash of blank space (Bug 2 fix).
  *  Keep this short so tool pills appear immediately and the shimmer only
  *  bridges the gap until the first tool/text event arrives. */
-const THINKING_GRACE_PERIOD_MS = 300
+const THINKING_GRACE_PERIOD_MS = 120
 
 /** Map tool names to human-readable status strings */
 const TOOL_STATUS_MAP: Record<string, string> = {
@@ -776,12 +776,27 @@ function ChatMessageListComponent({
       assistantMessageCountRef.current = displayEntries.filter(
         ({ message }) => message.role === 'assistant',
       ).length
-      setThinkingGrace(true)
+
+      const lastAssistantEntry = [...displayEntries]
+        .reverse()
+        .find(({ message }) => message.role === 'assistant')
+      const lastAssistantText = lastAssistantEntry
+        ? textFromMessage(lastAssistantEntry.message).trim()
+        : ''
+      const shouldUseGrace = lastAssistantText.length === 0
+
       if (thinkingGraceTimerRef.current) clearTimeout(thinkingGraceTimerRef.current)
-      thinkingGraceTimerRef.current = setTimeout(() => {
-        thinkingGraceTimerRef.current = null
+
+      if (shouldUseGrace) {
+        setThinkingGrace(true)
+        thinkingGraceTimerRef.current = setTimeout(() => {
+          thinkingGraceTimerRef.current = null
+          setThinkingGrace(false)
+        }, THINKING_GRACE_PERIOD_MS)
+      } else {
         setThinkingGrace(false)
-      }, THINKING_GRACE_PERIOD_MS)
+        thinkingGraceTimerRef.current = null
+      }
     }
 
     return () => {
