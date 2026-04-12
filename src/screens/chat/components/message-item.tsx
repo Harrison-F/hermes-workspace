@@ -936,12 +936,20 @@ function LifecycleEventCard({
   )
 }
 
+function mediaPathToUrl(mediaPath: string): string {
+  const trimmed = mediaPath.trim()
+  if (!trimmed) return ''
+  if (/^(data:|https?:\/\/|blob:)/i.test(trimmed)) return trimmed
+  if (trimmed.startsWith('/api/')) return trimmed
+  return `/api/local-media?path=${encodeURIComponent(trimmed)}`
+}
+
 function attachmentSource(attachment: ChatAttachment | undefined): string {
   if (!attachment) return ''
   const candidates = [attachment.previewUrl, attachment.dataUrl, attachment.url]
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
-      return candidate
+      return mediaPathToUrl(candidate)
     }
   }
   return ''
@@ -977,6 +985,24 @@ function isMarkdownAttachment(attachment: ChatAttachment): boolean {
       ? attachment.contentType.trim().toLowerCase()
       : ''
   return contentType.includes('markdown')
+}
+
+function extractMediaMarkers(text: string): Array<{ raw: string; path: string }> {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith('MEDIA:'))
+    .map((line) => ({ raw: line, path: line.slice('MEDIA:'.length).trim() }))
+    .filter((entry) => entry.path.length > 0)
+}
+
+function stripMediaMarkers(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith('MEDIA:'))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 function decodeAttachmentText(attachment: ChatAttachment): string {
@@ -1394,9 +1420,11 @@ function MessageItemComponent({
   const remoteStreamingActive = isStreaming === true
 
   const fullText = useMemo(() => textFromMessage(message), [message])
+  const mediaMarkers = useMemo(() => extractMediaMarkers(fullText), [fullText])
+  const sanitizedFullText = useMemo(() => stripMediaMarkers(fullText), [fullText])
   const initialDisplayText = remoteStreamingActive
-    ? (remoteStreamingText ?? fullText)
-    : fullText
+    ? stripMediaMarkers(remoteStreamingText ?? fullText)
+    : sanitizedFullText
   const [displayText, setDisplayText] = useState(() => initialDisplayText)
   const [revealedWordCount, setRevealedWordCount] = useState(() =>
     remoteStreamingActive || _simulateStreaming
@@ -1423,12 +1451,15 @@ function MessageItemComponent({
 
   useEffect(() => {
     if (remoteStreamingActive) {
-      setDisplayText(remoteStreamingText ?? fullText)
+      const nextText = stripMediaMarkers(remoteStreamingText ?? fullText)
+      setDisplayText(nextText)
       return
     }
 
-    setDisplayText((current) => (current === fullText ? current : fullText))
-  }, [remoteStreamingActive, remoteStreamingText, fullText])
+    setDisplayText((current) =>
+      current === sanitizedFullText ? current : sanitizedFullText,
+    )
+  }, [remoteStreamingActive, remoteStreamingText, fullText, sanitizedFullText])
 
   // Reset word count when simulate streaming starts for a new message
   useEffect(() => {
@@ -1569,7 +1600,30 @@ function MessageItemComponent({
       })
       .filter((img) => img.src.length > 0)
   }, [message.content])
-  const hasInlineImages = inlineImages.length > 0
+  const mediaImages = useMemo(
+    () =>
+      mediaMarkers
+        .filter((entry) => /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(entry.path))
+        .map((entry, index) => ({
+          id: `media-image-${index}`,
+          src: mediaPathToUrl(entry.path),
+          path: entry.path,
+        })),
+    [mediaMarkers],
+  )
+  const mediaFiles = useMemo(
+    () =>
+      mediaMarkers
+        .filter((entry) => !/\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(entry.path))
+        .map((entry, index) => ({
+          id: `media-file-${index}`,
+          href: mediaPathToUrl(entry.path),
+          path: entry.path,
+          name: entry.path.split('/').pop() || entry.path,
+        })),
+    [mediaMarkers],
+  )
+  const hasInlineImages = inlineImages.length > 0 || mediaImages.length > 0
 
   const hasText = displayText.length > 0
   const hasRevealedText = effectiveIsStreaming ? assistantDisplayText.length > 0 : hasText
@@ -2048,6 +2102,38 @@ function MessageItemComponent({
                         className="max-h-64 w-auto max-w-full object-contain"
                         loading="lazy"
                       />
+                    </a>
+                  ))}
+                  {mediaImages.map((img) => (
+                    <a
+                      key={img.id}
+                      href={img.src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-lg border border-primary-200 hover:border-primary-400 transition-colors max-w-full"
+                    >
+                      <img
+                        src={img.src}
+                        alt={img.path.split('/').pop() || 'Shared image'}
+                        className="max-h-64 w-auto max-w-full object-contain"
+                        loading="lazy"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+              {mediaFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {mediaFiles.map((file) => (
+                    <a
+                      key={file.id}
+                      href={file.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex max-w-full items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700 hover:border-primary-400"
+                    >
+                      <span>📎</span>
+                      <span className="truncate">{file.name}</span>
                     </a>
                   ))}
                 </div>

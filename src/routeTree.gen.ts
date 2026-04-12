@@ -41,6 +41,7 @@ import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
+import { Route as ApiLocalMediaRouteImport } from './routes/api/local-media'
 import { Route as ApiKanbanTasksRouteImport } from './routes/api/kanban-tasks'
 import { Route as ApiKanbanBoardsRouteImport } from './routes/api/kanban-boards'
 import { Route as ApiHistoryRouteImport } from './routes/api/history'
@@ -246,6 +247,11 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
 const ApiMemoryRoute = ApiMemoryRouteImport.update({
   id: '/api/memory',
   path: '/api/memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLocalMediaRoute = ApiLocalMediaRouteImport.update({
+  id: '/api/local-media',
+  path: '/api/local-media',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiKanbanTasksRoute = ApiKanbanTasksRouteImport.update({
@@ -510,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/local-media': typeof ApiLocalMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
@@ -589,6 +596,7 @@ export interface FileRoutesByTo {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/local-media': typeof ApiLocalMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
@@ -670,6 +678,7 @@ export interface FileRoutesById {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/local-media': typeof ApiLocalMediaRoute
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
@@ -752,6 +761,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/local-media'
     | '/api/memory'
     | '/api/models'
     | '/api/paths'
@@ -831,6 +841,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/local-media'
     | '/api/memory'
     | '/api/models'
     | '/api/paths'
@@ -911,6 +922,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/local-media'
     | '/api/memory'
     | '/api/models'
     | '/api/paths'
@@ -992,6 +1004,7 @@ export interface RootRouteChildren {
   ApiHistoryRoute: typeof ApiHistoryRoute
   ApiKanbanBoardsRoute: typeof ApiKanbanBoardsRouteWithChildren
   ApiKanbanTasksRoute: typeof ApiKanbanTasksRouteWithChildren
+  ApiLocalMediaRoute: typeof ApiLocalMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
@@ -1252,6 +1265,13 @@ declare module '@tanstack/react-router' {
       path: '/api/memory'
       fullPath: '/api/memory'
       preLoaderRoute: typeof ApiMemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/local-media': {
+      id: '/api/local-media'
+      path: '/api/local-media'
+      fullPath: '/api/local-media'
+      preLoaderRoute: typeof ApiLocalMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/kanban-tasks': {
@@ -1723,6 +1743,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHistoryRoute: ApiHistoryRoute,
   ApiKanbanBoardsRoute: ApiKanbanBoardsRouteWithChildren,
   ApiKanbanTasksRoute: ApiKanbanTasksRouteWithChildren,
+  ApiLocalMediaRoute: ApiLocalMediaRoute,
   ApiMemoryRoute: ApiMemoryRouteWithChildren,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,

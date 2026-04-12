@@ -1203,6 +1203,8 @@ export function ChatScreen({
       __realtimeChatDebugLog?: Array<Record<string, unknown>>
       __dumpChatThinkingDebug?: () => Record<string, unknown>
       __copyChatThinkingDebug?: () => Promise<string>
+      __dumpChatImageDebug?: () => Record<string, unknown>
+      __copyChatImageDebug?: () => Promise<string>
       __lastStuckThinkingDebug?: Record<string, unknown>
     }
 
@@ -1230,18 +1232,137 @@ export function ChatScreen({
       return dump
     }
 
+    w.__dumpChatImageDebug = () => {
+      const messageSummaries = finalDisplayMessages.map((message, index) => {
+        const attachments = Array.isArray(message.attachments) ? message.attachments : []
+        const contentParts = Array.isArray(message.content) ? message.content : []
+        const inlineImages = contentParts
+          .map((part, imageIndex) => {
+            if (!part || typeof part !== 'object') return null
+            const p = part as Record<string, unknown>
+            if (p.type !== 'image') return null
+            const source =
+              p.source && typeof p.source === 'object'
+                ? (p.source as Record<string, unknown>)
+                : null
+            return {
+              id: `inline-${index}-${imageIndex}`,
+              mediaType:
+                typeof source?.media_type === 'string' ? source.media_type : null,
+              hasBase64Data:
+                typeof source?.data === 'string' && source.data.length > 0,
+              url:
+                typeof source?.url === 'string'
+                  ? source.url
+                  : typeof p.url === 'string'
+                    ? p.url
+                    : null,
+            }
+          })
+          .filter(Boolean)
+
+        return {
+          index,
+          role: typeof message.role === 'string' ? message.role : null,
+          textPreview:
+            typeof message.text === 'string'
+              ? message.text.slice(0, 160)
+              : typeof message.content === 'string'
+                ? String(message.content).slice(0, 160)
+                : null,
+          attachmentCount: attachments.length,
+          attachments: attachments.map((attachment, attachmentIndex) => ({
+            index: attachmentIndex,
+            id: attachment.id ?? null,
+            name: attachment.name ?? null,
+            contentType: attachment.contentType ?? null,
+            size: typeof attachment.size === 'number' ? attachment.size : null,
+            hasUrl: typeof attachment.url === 'string' && attachment.url.length > 0,
+            hasDataUrl:
+              typeof attachment.dataUrl === 'string' && attachment.dataUrl.length > 0,
+            hasPreviewUrl:
+              typeof attachment.previewUrl === 'string' && attachment.previewUrl.length > 0,
+            urlPreview:
+              typeof attachment.url === 'string' ? attachment.url.slice(0, 200) : null,
+            previewUrlPreview:
+              typeof attachment.previewUrl === 'string'
+                ? attachment.previewUrl.slice(0, 200)
+                : null,
+            dataUrlPrefix:
+              typeof attachment.dataUrl === 'string'
+                ? attachment.dataUrl.slice(0, 80)
+                : null,
+          })),
+          inlineImageCount: inlineImages.length,
+          inlineImages,
+        }
+      })
+
+      const renderedImages = Array.from(
+        document.querySelectorAll('img'),
+      ).map((img, index) => ({
+        index,
+        src: img.currentSrc || img.src || null,
+        alt: img.alt || null,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        clientWidth: img.clientWidth,
+        clientHeight: img.clientHeight,
+        complete: img.complete,
+      }))
+
+      const renderedAttachmentLinks = Array.from(
+        document.querySelectorAll('a[href]'),
+      )
+        .filter((link) => link.querySelector('img') || /attachment|image|open/i.test(link.textContent || ''))
+        .map((link, index) => ({
+          index,
+          href: link.getAttribute('href'),
+          text: link.textContent?.trim()?.slice(0, 120) ?? null,
+        }))
+
+      return {
+        capturedAt: new Date().toISOString(),
+        session: activeFriendlyId,
+        chatMode,
+        finalDisplayMessageCount: finalDisplayMessages.length,
+        messageSummaries,
+        renderedImages,
+        renderedAttachmentLinks,
+      }
+    }
+
+    w.__copyChatImageDebug = async () => {
+      const dump = JSON.stringify(w.__dumpChatImageDebug?.() ?? {}, null, 2)
+      await writeTextToClipboard(dump)
+      return dump
+    }
+
     const handleDebugDumpShortcut = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.key !== 'D') {
+      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey) {
         return
       }
-      event.preventDefault()
-      void w.__copyChatThinkingDebug?.()
-        .then(() => {
-          toast('Copied stuck-Thinking debug dump', { type: 'success' })
-        })
-        .catch(() => {
-          toast('Failed to copy stuck-Thinking debug dump', { type: 'error' })
-        })
+      if (event.key === 'D') {
+        event.preventDefault()
+        void w.__copyChatThinkingDebug?.()
+          .then(() => {
+            toast('Copied stuck-Thinking debug dump', { type: 'success' })
+          })
+          .catch(() => {
+            toast('Failed to copy stuck-Thinking debug dump', { type: 'error' })
+          })
+        return
+      }
+      if (event.key === 'I') {
+        event.preventDefault()
+        void w.__copyChatImageDebug?.()
+          .then(() => {
+            toast('Copied chat image debug dump', { type: 'success' })
+          })
+          .catch(() => {
+            toast('Failed to copy chat image debug dump', { type: 'error' })
+          })
+      }
     }
 
     window.addEventListener('keydown', handleDebugDumpShortcut)
@@ -1273,12 +1394,15 @@ export function ChatScreen({
       window.removeEventListener('keydown', handleDebugDumpShortcut)
       delete w.__dumpChatThinkingDebug
       delete w.__copyChatThinkingDebug
+      delete w.__dumpChatImageDebug
+      delete w.__copyChatImageDebug
     }
   }, [
     activeFriendlyId,
     activeIsRealtimeStreaming,
     activeRealtimeStreamingText.length,
     activeToolCalls,
+    chatMode,
     finalDisplayMessages,
     lastCompletedRunAt,
     liveToolActivity,
