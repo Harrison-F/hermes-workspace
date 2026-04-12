@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TerminalRouteImport } from './routes/terminal'
 import { Route as SkillsRouteImport } from './routes/skills'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ProfilesRouteImport } from './routes/profiles'
 import { Route as MemoryRouteImport } from './routes/memory'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as FilesRouteImport } from './routes/files'
@@ -22,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
+import { Route as SettingsMcpRouteImport } from './routes/settings/mcp'
 import { Route as ChatSessionKeyRouteImport } from './routes/chat/$sessionKey'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
 import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-stream'
@@ -38,6 +40,7 @@ import { Route as ApiSendRouteImport } from './routes/api/send'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
+import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiKanbanTasksRouteImport } from './routes/api/kanban-tasks'
 import { Route as ApiKanbanBoardsRouteImport } from './routes/api/kanban-boards'
 import { Route as ApiHistoryRouteImport } from './routes/api/history'
@@ -51,21 +54,39 @@ import { Route as ApiConnectionStatusRouteImport } from './routes/api/connection
 import { Route as ApiChatEventsRouteImport } from './routes/api/chat-events'
 import { Route as ApiAuthCheckRouteImport } from './routes/api/auth-check'
 import { Route as ApiAuthRouteImport } from './routes/api/auth'
+import { Route as ApiSkillsUninstallRouteImport } from './routes/api/skills/uninstall'
+import { Route as ApiSkillsInstallRouteImport } from './routes/api/skills/install'
+import { Route as ApiSkillsHubSearchRouteImport } from './routes/api/skills/hub-search'
 import { Route as ApiSessionsSendRouteImport } from './routes/api/sessions/send'
+import { Route as ApiProfilesRenameRouteImport } from './routes/api/profiles/rename'
+import { Route as ApiProfilesReadRouteImport } from './routes/api/profiles/read'
+import { Route as ApiProfilesListRouteImport } from './routes/api/profiles/list'
+import { Route as ApiProfilesDeleteRouteImport } from './routes/api/profiles/delete'
+import { Route as ApiProfilesCreateRouteImport } from './routes/api/profiles/create'
+import { Route as ApiProfilesActivateRouteImport } from './routes/api/profiles/activate'
 import { Route as ApiOauthPollTokenRouteImport } from './routes/api/oauth.poll-token'
 import { Route as ApiOauthDeviceCodeRouteImport } from './routes/api/oauth.device-code'
 import { Route as ApiMemoryWriteRouteImport } from './routes/api/memory/write'
 import { Route as ApiMemorySearchRouteImport } from './routes/api/memory/search'
 import { Route as ApiMemoryReadRouteImport } from './routes/api/memory/read'
 import { Route as ApiMemoryListRouteImport } from './routes/api/memory/list'
+import { Route as ApiMcpServersRouteImport } from './routes/api/mcp/servers'
+import { Route as ApiMcpReloadRouteImport } from './routes/api/mcp/reload'
+import { Route as ApiKnowledgeSearchRouteImport } from './routes/api/knowledge/search'
+import { Route as ApiKnowledgeReadRouteImport } from './routes/api/knowledge/read'
+import { Route as ApiKnowledgeListRouteImport } from './routes/api/knowledge/list'
+import { Route as ApiKnowledgeGraphRouteImport } from './routes/api/knowledge/graph'
 import { Route as ApiKanbanTasksTaskIdRouteImport } from './routes/api/kanban-tasks.$taskId'
 import { Route as ApiKanbanBoardsReorderRouteImport } from './routes/api/kanban-boards.reorder'
 import { Route as ApiKanbanBoardsBoardIdRouteImport } from './routes/api/kanban-boards.$boardId'
+import { Route as ApiHermesProxySplatRouteImport } from './routes/api/hermes-proxy/$'
 import { Route as ApiHermesJobsJobIdRouteImport } from './routes/api/hermes-jobs.$jobId'
 import { Route as ApiSessionsSessionKeyStatusRouteImport } from './routes/api/sessions/$sessionKey.status'
+import { Route as ApiSessionsSessionKeyActiveRunRouteImport } from './routes/api/sessions/$sessionKey.active-run'
 import { Route as ApiKanbanTasksTaskIdSessionRouteImport } from './routes/api/kanban-tasks.$taskId.session'
 import { Route as ApiKanbanTasksTaskIdReorderRouteImport } from './routes/api/kanban-tasks.$taskId.reorder'
 import { Route as ApiKanbanTasksTaskIdExecuteRouteImport } from './routes/api/kanban-tasks.$taskId.execute'
+import { Route as ApiHermesProxyApiAvailableModelsRouteImport } from './routes/api/hermes-proxy/api/available-models'
 
 const TerminalRoute = TerminalRouteImport.update({
   id: '/terminal',
@@ -80,6 +101,11 @@ const SkillsRoute = SkillsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfilesRoute = ProfilesRouteImport.update({
+  id: '/profiles',
+  path: '/profiles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MemoryRoute = MemoryRouteImport.update({
@@ -130,6 +156,11 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
 const SettingsProvidersRoute = SettingsProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsMcpRoute = SettingsMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => SettingsRoute,
 } as any)
 const ChatSessionKeyRoute = ChatSessionKeyRouteImport.update({
@@ -212,6 +243,11 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
   path: '/api/models',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMemoryRoute = ApiMemoryRouteImport.update({
+  id: '/api/memory',
+  path: '/api/memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKanbanTasksRoute = ApiKanbanTasksRouteImport.update({
   id: '/api/kanban-tasks',
   path: '/api/kanban-tasks',
@@ -277,10 +313,55 @@ const ApiAuthRoute = ApiAuthRouteImport.update({
   path: '/api/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSkillsUninstallRoute = ApiSkillsUninstallRouteImport.update({
+  id: '/uninstall',
+  path: '/uninstall',
+  getParentRoute: () => ApiSkillsRoute,
+} as any)
+const ApiSkillsInstallRoute = ApiSkillsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => ApiSkillsRoute,
+} as any)
+const ApiSkillsHubSearchRoute = ApiSkillsHubSearchRouteImport.update({
+  id: '/hub-search',
+  path: '/hub-search',
+  getParentRoute: () => ApiSkillsRoute,
+} as any)
 const ApiSessionsSendRoute = ApiSessionsSendRouteImport.update({
   id: '/send',
   path: '/send',
   getParentRoute: () => ApiSessionsRoute,
+} as any)
+const ApiProfilesRenameRoute = ApiProfilesRenameRouteImport.update({
+  id: '/api/profiles/rename',
+  path: '/api/profiles/rename',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfilesReadRoute = ApiProfilesReadRouteImport.update({
+  id: '/api/profiles/read',
+  path: '/api/profiles/read',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfilesListRoute = ApiProfilesListRouteImport.update({
+  id: '/api/profiles/list',
+  path: '/api/profiles/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfilesDeleteRoute = ApiProfilesDeleteRouteImport.update({
+  id: '/api/profiles/delete',
+  path: '/api/profiles/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfilesCreateRoute = ApiProfilesCreateRouteImport.update({
+  id: '/api/profiles/create',
+  path: '/api/profiles/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProfilesActivateRoute = ApiProfilesActivateRouteImport.update({
+  id: '/api/profiles/activate',
+  path: '/api/profiles/activate',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOauthPollTokenRoute = ApiOauthPollTokenRouteImport.update({
   id: '/api/oauth/poll-token',
@@ -293,23 +374,53 @@ const ApiOauthDeviceCodeRoute = ApiOauthDeviceCodeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMemoryWriteRoute = ApiMemoryWriteRouteImport.update({
-  id: '/api/memory/write',
-  path: '/api/memory/write',
-  getParentRoute: () => rootRouteImport,
+  id: '/write',
+  path: '/write',
+  getParentRoute: () => ApiMemoryRoute,
 } as any)
 const ApiMemorySearchRoute = ApiMemorySearchRouteImport.update({
-  id: '/api/memory/search',
-  path: '/api/memory/search',
-  getParentRoute: () => rootRouteImport,
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => ApiMemoryRoute,
 } as any)
 const ApiMemoryReadRoute = ApiMemoryReadRouteImport.update({
-  id: '/api/memory/read',
-  path: '/api/memory/read',
-  getParentRoute: () => rootRouteImport,
+  id: '/read',
+  path: '/read',
+  getParentRoute: () => ApiMemoryRoute,
 } as any)
 const ApiMemoryListRoute = ApiMemoryListRouteImport.update({
-  id: '/api/memory/list',
-  path: '/api/memory/list',
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => ApiMemoryRoute,
+} as any)
+const ApiMcpServersRoute = ApiMcpServersRouteImport.update({
+  id: '/api/mcp/servers',
+  path: '/api/mcp/servers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpReloadRoute = ApiMcpReloadRouteImport.update({
+  id: '/api/mcp/reload',
+  path: '/api/mcp/reload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKnowledgeSearchRoute = ApiKnowledgeSearchRouteImport.update({
+  id: '/api/knowledge/search',
+  path: '/api/knowledge/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKnowledgeReadRoute = ApiKnowledgeReadRouteImport.update({
+  id: '/api/knowledge/read',
+  path: '/api/knowledge/read',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKnowledgeListRoute = ApiKnowledgeListRouteImport.update({
+  id: '/api/knowledge/list',
+  path: '/api/knowledge/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKnowledgeGraphRoute = ApiKnowledgeGraphRouteImport.update({
+  id: '/api/knowledge/graph',
+  path: '/api/knowledge/graph',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiKanbanTasksTaskIdRoute = ApiKanbanTasksTaskIdRouteImport.update({
@@ -327,6 +438,11 @@ const ApiKanbanBoardsBoardIdRoute = ApiKanbanBoardsBoardIdRouteImport.update({
   path: '/$boardId',
   getParentRoute: () => ApiKanbanBoardsRoute,
 } as any)
+const ApiHermesProxySplatRoute = ApiHermesProxySplatRouteImport.update({
+  id: '/api/hermes-proxy/$',
+  path: '/api/hermes-proxy/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHermesJobsJobIdRoute = ApiHermesJobsJobIdRouteImport.update({
   id: '/$jobId',
   path: '/$jobId',
@@ -336,6 +452,12 @@ const ApiSessionsSessionKeyStatusRoute =
   ApiSessionsSessionKeyStatusRouteImport.update({
     id: '/$sessionKey/status',
     path: '/$sessionKey/status',
+    getParentRoute: () => ApiSessionsRoute,
+  } as any)
+const ApiSessionsSessionKeyActiveRunRoute =
+  ApiSessionsSessionKeyActiveRunRouteImport.update({
+    id: '/$sessionKey/active-run',
+    path: '/$sessionKey/active-run',
     getParentRoute: () => ApiSessionsRoute,
   } as any)
 const ApiKanbanTasksTaskIdSessionRoute =
@@ -356,6 +478,12 @@ const ApiKanbanTasksTaskIdExecuteRoute =
     path: '/execute',
     getParentRoute: () => ApiKanbanTasksTaskIdRoute,
   } as any)
+const ApiHermesProxyApiAvailableModelsRoute =
+  ApiHermesProxyApiAvailableModelsRouteImport.update({
+    id: '/api/hermes-proxy/api/available-models',
+    path: '/api/hermes-proxy/api/available-models',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -365,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
   '/memory': typeof MemoryRoute
+  '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRouteWithChildren
   '/skills': typeof SkillsRoute
   '/terminal': typeof TerminalRoute
@@ -381,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -388,7 +518,7 @@ export interface FileRoutesByFullPath {
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-status': typeof ApiSessionStatusRoute
   '/api/sessions': typeof ApiSessionsRouteWithChildren
-  '/api/skills': typeof ApiSkillsRoute
+  '/api/skills': typeof ApiSkillsRouteWithChildren
   '/api/start-agent': typeof ApiStartAgentRoute
   '/api/start-hermes': typeof ApiStartHermesRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
@@ -397,23 +527,42 @@ export interface FileRoutesByFullPath {
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
+  '/settings/mcp': typeof SettingsMcpRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/chat/': typeof ChatIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/hermes-proxy/$': typeof ApiHermesProxySplatRoute
   '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
   '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
   '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
+  '/api/knowledge/graph': typeof ApiKnowledgeGraphRoute
+  '/api/knowledge/list': typeof ApiKnowledgeListRoute
+  '/api/knowledge/read': typeof ApiKnowledgeReadRoute
+  '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
+  '/api/mcp/reload': typeof ApiMcpReloadRoute
+  '/api/mcp/servers': typeof ApiMcpServersRoute
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
+  '/api/profiles/activate': typeof ApiProfilesActivateRoute
+  '/api/profiles/create': typeof ApiProfilesCreateRoute
+  '/api/profiles/delete': typeof ApiProfilesDeleteRoute
+  '/api/profiles/list': typeof ApiProfilesListRoute
+  '/api/profiles/read': typeof ApiProfilesReadRoute
+  '/api/profiles/rename': typeof ApiProfilesRenameRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
+  '/api/skills/install': typeof ApiSkillsInstallRoute
+  '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
+  '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesByTo {
@@ -424,6 +573,7 @@ export interface FileRoutesByTo {
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
   '/memory': typeof MemoryRoute
+  '/profiles': typeof ProfilesRoute
   '/skills': typeof SkillsRoute
   '/terminal': typeof TerminalRoute
   '/api/auth': typeof ApiAuthRoute
@@ -439,6 +589,7 @@ export interface FileRoutesByTo {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -446,7 +597,7 @@ export interface FileRoutesByTo {
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-status': typeof ApiSessionStatusRoute
   '/api/sessions': typeof ApiSessionsRouteWithChildren
-  '/api/skills': typeof ApiSkillsRoute
+  '/api/skills': typeof ApiSkillsRouteWithChildren
   '/api/start-agent': typeof ApiStartAgentRoute
   '/api/start-hermes': typeof ApiStartHermesRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
@@ -455,23 +606,42 @@ export interface FileRoutesByTo {
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
+  '/settings/mcp': typeof SettingsMcpRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/chat': typeof ChatIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/hermes-proxy/$': typeof ApiHermesProxySplatRoute
   '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
   '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
   '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
+  '/api/knowledge/graph': typeof ApiKnowledgeGraphRoute
+  '/api/knowledge/list': typeof ApiKnowledgeListRoute
+  '/api/knowledge/read': typeof ApiKnowledgeReadRoute
+  '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
+  '/api/mcp/reload': typeof ApiMcpReloadRoute
+  '/api/mcp/servers': typeof ApiMcpServersRoute
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
+  '/api/profiles/activate': typeof ApiProfilesActivateRoute
+  '/api/profiles/create': typeof ApiProfilesCreateRoute
+  '/api/profiles/delete': typeof ApiProfilesDeleteRoute
+  '/api/profiles/list': typeof ApiProfilesListRoute
+  '/api/profiles/read': typeof ApiProfilesReadRoute
+  '/api/profiles/rename': typeof ApiProfilesRenameRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
+  '/api/skills/install': typeof ApiSkillsInstallRoute
+  '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
+  '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRoutesById {
@@ -483,6 +653,7 @@ export interface FileRoutesById {
   '/files': typeof FilesRoute
   '/jobs': typeof JobsRoute
   '/memory': typeof MemoryRoute
+  '/profiles': typeof ProfilesRoute
   '/settings': typeof SettingsRouteWithChildren
   '/skills': typeof SkillsRoute
   '/terminal': typeof TerminalRoute
@@ -499,6 +670,7 @@ export interface FileRoutesById {
   '/api/history': typeof ApiHistoryRoute
   '/api/kanban-boards': typeof ApiKanbanBoardsRouteWithChildren
   '/api/kanban-tasks': typeof ApiKanbanTasksRouteWithChildren
+  '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -506,7 +678,7 @@ export interface FileRoutesById {
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-status': typeof ApiSessionStatusRoute
   '/api/sessions': typeof ApiSessionsRouteWithChildren
-  '/api/skills': typeof ApiSkillsRoute
+  '/api/skills': typeof ApiSkillsRouteWithChildren
   '/api/start-agent': typeof ApiStartAgentRoute
   '/api/start-hermes': typeof ApiStartHermesRoute
   '/api/terminal-close': typeof ApiTerminalCloseRoute
@@ -515,23 +687,42 @@ export interface FileRoutesById {
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
+  '/settings/mcp': typeof SettingsMcpRoute
   '/settings/providers': typeof SettingsProvidersRoute
   '/chat/': typeof ChatIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/api/hermes-jobs/$jobId': typeof ApiHermesJobsJobIdRoute
+  '/api/hermes-proxy/$': typeof ApiHermesProxySplatRoute
   '/api/kanban-boards/$boardId': typeof ApiKanbanBoardsBoardIdRoute
   '/api/kanban-boards/reorder': typeof ApiKanbanBoardsReorderRoute
   '/api/kanban-tasks/$taskId': typeof ApiKanbanTasksTaskIdRouteWithChildren
+  '/api/knowledge/graph': typeof ApiKnowledgeGraphRoute
+  '/api/knowledge/list': typeof ApiKnowledgeListRoute
+  '/api/knowledge/read': typeof ApiKnowledgeReadRoute
+  '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
+  '/api/mcp/reload': typeof ApiMcpReloadRoute
+  '/api/mcp/servers': typeof ApiMcpServersRoute
   '/api/memory/list': typeof ApiMemoryListRoute
   '/api/memory/read': typeof ApiMemoryReadRoute
   '/api/memory/search': typeof ApiMemorySearchRoute
   '/api/memory/write': typeof ApiMemoryWriteRoute
   '/api/oauth/device-code': typeof ApiOauthDeviceCodeRoute
   '/api/oauth/poll-token': typeof ApiOauthPollTokenRoute
+  '/api/profiles/activate': typeof ApiProfilesActivateRoute
+  '/api/profiles/create': typeof ApiProfilesCreateRoute
+  '/api/profiles/delete': typeof ApiProfilesDeleteRoute
+  '/api/profiles/list': typeof ApiProfilesListRoute
+  '/api/profiles/read': typeof ApiProfilesReadRoute
+  '/api/profiles/rename': typeof ApiProfilesRenameRoute
   '/api/sessions/send': typeof ApiSessionsSendRoute
+  '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
+  '/api/skills/install': typeof ApiSkillsInstallRoute
+  '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
   '/api/kanban-tasks/$taskId/session': typeof ApiKanbanTasksTaskIdSessionRoute
+  '/api/sessions/$sessionKey/active-run': typeof ApiSessionsSessionKeyActiveRunRoute
   '/api/sessions/$sessionKey/status': typeof ApiSessionsSessionKeyStatusRoute
 }
 export interface FileRouteTypes {
@@ -544,6 +735,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/jobs'
     | '/memory'
+    | '/profiles'
     | '/settings'
     | '/skills'
     | '/terminal'
@@ -560,6 +752,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/memory'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -576,23 +769,42 @@ export interface FileRouteTypes {
     | '/api/terminal-stream'
     | '/api/workspace'
     | '/chat/$sessionKey'
+    | '/settings/mcp'
     | '/settings/providers'
     | '/chat/'
     | '/settings/'
     | '/api/hermes-jobs/$jobId'
+    | '/api/hermes-proxy/$'
     | '/api/kanban-boards/$boardId'
     | '/api/kanban-boards/reorder'
     | '/api/kanban-tasks/$taskId'
+    | '/api/knowledge/graph'
+    | '/api/knowledge/list'
+    | '/api/knowledge/read'
+    | '/api/knowledge/search'
+    | '/api/mcp/reload'
+    | '/api/mcp/servers'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
+    | '/api/profiles/activate'
+    | '/api/profiles/create'
+    | '/api/profiles/delete'
+    | '/api/profiles/list'
+    | '/api/profiles/read'
+    | '/api/profiles/rename'
     | '/api/sessions/send'
+    | '/api/skills/hub-search'
+    | '/api/skills/install'
+    | '/api/skills/uninstall'
+    | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
+    | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -603,6 +815,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/jobs'
     | '/memory'
+    | '/profiles'
     | '/skills'
     | '/terminal'
     | '/api/auth'
@@ -618,6 +831,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/memory'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -634,23 +848,42 @@ export interface FileRouteTypes {
     | '/api/terminal-stream'
     | '/api/workspace'
     | '/chat/$sessionKey'
+    | '/settings/mcp'
     | '/settings/providers'
     | '/chat'
     | '/settings'
     | '/api/hermes-jobs/$jobId'
+    | '/api/hermes-proxy/$'
     | '/api/kanban-boards/$boardId'
     | '/api/kanban-boards/reorder'
     | '/api/kanban-tasks/$taskId'
+    | '/api/knowledge/graph'
+    | '/api/knowledge/list'
+    | '/api/knowledge/read'
+    | '/api/knowledge/search'
+    | '/api/mcp/reload'
+    | '/api/mcp/servers'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
+    | '/api/profiles/activate'
+    | '/api/profiles/create'
+    | '/api/profiles/delete'
+    | '/api/profiles/list'
+    | '/api/profiles/read'
+    | '/api/profiles/rename'
     | '/api/sessions/send'
+    | '/api/skills/hub-search'
+    | '/api/skills/install'
+    | '/api/skills/uninstall'
+    | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
+    | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
   id:
     | '__root__'
@@ -661,6 +894,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/jobs'
     | '/memory'
+    | '/profiles'
     | '/settings'
     | '/skills'
     | '/terminal'
@@ -677,6 +911,7 @@ export interface FileRouteTypes {
     | '/api/history'
     | '/api/kanban-boards'
     | '/api/kanban-tasks'
+    | '/api/memory'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -693,23 +928,42 @@ export interface FileRouteTypes {
     | '/api/terminal-stream'
     | '/api/workspace'
     | '/chat/$sessionKey'
+    | '/settings/mcp'
     | '/settings/providers'
     | '/chat/'
     | '/settings/'
     | '/api/hermes-jobs/$jobId'
+    | '/api/hermes-proxy/$'
     | '/api/kanban-boards/$boardId'
     | '/api/kanban-boards/reorder'
     | '/api/kanban-tasks/$taskId'
+    | '/api/knowledge/graph'
+    | '/api/knowledge/list'
+    | '/api/knowledge/read'
+    | '/api/knowledge/search'
+    | '/api/mcp/reload'
+    | '/api/mcp/servers'
     | '/api/memory/list'
     | '/api/memory/read'
     | '/api/memory/search'
     | '/api/memory/write'
     | '/api/oauth/device-code'
     | '/api/oauth/poll-token'
+    | '/api/profiles/activate'
+    | '/api/profiles/create'
+    | '/api/profiles/delete'
+    | '/api/profiles/list'
+    | '/api/profiles/read'
+    | '/api/profiles/rename'
     | '/api/sessions/send'
+    | '/api/skills/hub-search'
+    | '/api/skills/install'
+    | '/api/skills/uninstall'
+    | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
     | '/api/kanban-tasks/$taskId/session'
+    | '/api/sessions/$sessionKey/active-run'
     | '/api/sessions/$sessionKey/status'
   fileRoutesById: FileRoutesById
 }
@@ -721,6 +975,7 @@ export interface RootRouteChildren {
   FilesRoute: typeof FilesRoute
   JobsRoute: typeof JobsRoute
   MemoryRoute: typeof MemoryRoute
+  ProfilesRoute: typeof ProfilesRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SkillsRoute: typeof SkillsRoute
   TerminalRoute: typeof TerminalRoute
@@ -737,6 +992,7 @@ export interface RootRouteChildren {
   ApiHistoryRoute: typeof ApiHistoryRoute
   ApiKanbanBoardsRoute: typeof ApiKanbanBoardsRouteWithChildren
   ApiKanbanTasksRoute: typeof ApiKanbanTasksRouteWithChildren
+  ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
@@ -744,7 +1000,7 @@ export interface RootRouteChildren {
   ApiSendStreamRoute: typeof ApiSendStreamRoute
   ApiSessionStatusRoute: typeof ApiSessionStatusRoute
   ApiSessionsRoute: typeof ApiSessionsRouteWithChildren
-  ApiSkillsRoute: typeof ApiSkillsRoute
+  ApiSkillsRoute: typeof ApiSkillsRouteWithChildren
   ApiStartAgentRoute: typeof ApiStartAgentRoute
   ApiStartHermesRoute: typeof ApiStartHermesRoute
   ApiTerminalCloseRoute: typeof ApiTerminalCloseRoute
@@ -754,12 +1010,22 @@ export interface RootRouteChildren {
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
   ChatSessionKeyRoute: typeof ChatSessionKeyRoute
   ChatIndexRoute: typeof ChatIndexRoute
-  ApiMemoryListRoute: typeof ApiMemoryListRoute
-  ApiMemoryReadRoute: typeof ApiMemoryReadRoute
-  ApiMemorySearchRoute: typeof ApiMemorySearchRoute
-  ApiMemoryWriteRoute: typeof ApiMemoryWriteRoute
+  ApiHermesProxySplatRoute: typeof ApiHermesProxySplatRoute
+  ApiKnowledgeGraphRoute: typeof ApiKnowledgeGraphRoute
+  ApiKnowledgeListRoute: typeof ApiKnowledgeListRoute
+  ApiKnowledgeReadRoute: typeof ApiKnowledgeReadRoute
+  ApiKnowledgeSearchRoute: typeof ApiKnowledgeSearchRoute
+  ApiMcpReloadRoute: typeof ApiMcpReloadRoute
+  ApiMcpServersRoute: typeof ApiMcpServersRoute
   ApiOauthDeviceCodeRoute: typeof ApiOauthDeviceCodeRoute
   ApiOauthPollTokenRoute: typeof ApiOauthPollTokenRoute
+  ApiProfilesActivateRoute: typeof ApiProfilesActivateRoute
+  ApiProfilesCreateRoute: typeof ApiProfilesCreateRoute
+  ApiProfilesDeleteRoute: typeof ApiProfilesDeleteRoute
+  ApiProfilesListRoute: typeof ApiProfilesListRoute
+  ApiProfilesReadRoute: typeof ApiProfilesReadRoute
+  ApiProfilesRenameRoute: typeof ApiProfilesRenameRoute
+  ApiHermesProxyApiAvailableModelsRoute: typeof ApiHermesProxyApiAvailableModelsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -783,6 +1049,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profiles': {
+      id: '/profiles'
+      path: '/profiles'
+      fullPath: '/profiles'
+      preLoaderRoute: typeof ProfilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/memory': {
@@ -853,6 +1126,13 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/settings/providers'
       preLoaderRoute: typeof SettingsProvidersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/mcp': {
+      id: '/settings/mcp'
+      path: '/mcp'
+      fullPath: '/settings/mcp'
+      preLoaderRoute: typeof SettingsMcpRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/chat/$sessionKey': {
@@ -967,6 +1247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/memory': {
+      id: '/api/memory'
+      path: '/api/memory'
+      fullPath: '/api/memory'
+      preLoaderRoute: typeof ApiMemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/kanban-tasks': {
       id: '/api/kanban-tasks'
       path: '/api/kanban-tasks'
@@ -1058,12 +1345,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/skills/uninstall': {
+      id: '/api/skills/uninstall'
+      path: '/uninstall'
+      fullPath: '/api/skills/uninstall'
+      preLoaderRoute: typeof ApiSkillsUninstallRouteImport
+      parentRoute: typeof ApiSkillsRoute
+    }
+    '/api/skills/install': {
+      id: '/api/skills/install'
+      path: '/install'
+      fullPath: '/api/skills/install'
+      preLoaderRoute: typeof ApiSkillsInstallRouteImport
+      parentRoute: typeof ApiSkillsRoute
+    }
+    '/api/skills/hub-search': {
+      id: '/api/skills/hub-search'
+      path: '/hub-search'
+      fullPath: '/api/skills/hub-search'
+      preLoaderRoute: typeof ApiSkillsHubSearchRouteImport
+      parentRoute: typeof ApiSkillsRoute
+    }
     '/api/sessions/send': {
       id: '/api/sessions/send'
       path: '/send'
       fullPath: '/api/sessions/send'
       preLoaderRoute: typeof ApiSessionsSendRouteImport
       parentRoute: typeof ApiSessionsRoute
+    }
+    '/api/profiles/rename': {
+      id: '/api/profiles/rename'
+      path: '/api/profiles/rename'
+      fullPath: '/api/profiles/rename'
+      preLoaderRoute: typeof ApiProfilesRenameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profiles/read': {
+      id: '/api/profiles/read'
+      path: '/api/profiles/read'
+      fullPath: '/api/profiles/read'
+      preLoaderRoute: typeof ApiProfilesReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profiles/list': {
+      id: '/api/profiles/list'
+      path: '/api/profiles/list'
+      fullPath: '/api/profiles/list'
+      preLoaderRoute: typeof ApiProfilesListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profiles/delete': {
+      id: '/api/profiles/delete'
+      path: '/api/profiles/delete'
+      fullPath: '/api/profiles/delete'
+      preLoaderRoute: typeof ApiProfilesDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profiles/create': {
+      id: '/api/profiles/create'
+      path: '/api/profiles/create'
+      fullPath: '/api/profiles/create'
+      preLoaderRoute: typeof ApiProfilesCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/profiles/activate': {
+      id: '/api/profiles/activate'
+      path: '/api/profiles/activate'
+      fullPath: '/api/profiles/activate'
+      preLoaderRoute: typeof ApiProfilesActivateRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/oauth/poll-token': {
       id: '/api/oauth/poll-token'
@@ -1081,30 +1431,72 @@ declare module '@tanstack/react-router' {
     }
     '/api/memory/write': {
       id: '/api/memory/write'
-      path: '/api/memory/write'
+      path: '/write'
       fullPath: '/api/memory/write'
       preLoaderRoute: typeof ApiMemoryWriteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiMemoryRoute
     }
     '/api/memory/search': {
       id: '/api/memory/search'
-      path: '/api/memory/search'
+      path: '/search'
       fullPath: '/api/memory/search'
       preLoaderRoute: typeof ApiMemorySearchRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiMemoryRoute
     }
     '/api/memory/read': {
       id: '/api/memory/read'
-      path: '/api/memory/read'
+      path: '/read'
       fullPath: '/api/memory/read'
       preLoaderRoute: typeof ApiMemoryReadRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiMemoryRoute
     }
     '/api/memory/list': {
       id: '/api/memory/list'
-      path: '/api/memory/list'
+      path: '/list'
       fullPath: '/api/memory/list'
       preLoaderRoute: typeof ApiMemoryListRouteImport
+      parentRoute: typeof ApiMemoryRoute
+    }
+    '/api/mcp/servers': {
+      id: '/api/mcp/servers'
+      path: '/api/mcp/servers'
+      fullPath: '/api/mcp/servers'
+      preLoaderRoute: typeof ApiMcpServersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp/reload': {
+      id: '/api/mcp/reload'
+      path: '/api/mcp/reload'
+      fullPath: '/api/mcp/reload'
+      preLoaderRoute: typeof ApiMcpReloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/knowledge/search': {
+      id: '/api/knowledge/search'
+      path: '/api/knowledge/search'
+      fullPath: '/api/knowledge/search'
+      preLoaderRoute: typeof ApiKnowledgeSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/knowledge/read': {
+      id: '/api/knowledge/read'
+      path: '/api/knowledge/read'
+      fullPath: '/api/knowledge/read'
+      preLoaderRoute: typeof ApiKnowledgeReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/knowledge/list': {
+      id: '/api/knowledge/list'
+      path: '/api/knowledge/list'
+      fullPath: '/api/knowledge/list'
+      preLoaderRoute: typeof ApiKnowledgeListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/knowledge/graph': {
+      id: '/api/knowledge/graph'
+      path: '/api/knowledge/graph'
+      fullPath: '/api/knowledge/graph'
+      preLoaderRoute: typeof ApiKnowledgeGraphRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/kanban-tasks/$taskId': {
@@ -1128,6 +1520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKanbanBoardsBoardIdRouteImport
       parentRoute: typeof ApiKanbanBoardsRoute
     }
+    '/api/hermes-proxy/$': {
+      id: '/api/hermes-proxy/$'
+      path: '/api/hermes-proxy/$'
+      fullPath: '/api/hermes-proxy/$'
+      preLoaderRoute: typeof ApiHermesProxySplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hermes-jobs/$jobId': {
       id: '/api/hermes-jobs/$jobId'
       path: '/$jobId'
@@ -1140,6 +1539,13 @@ declare module '@tanstack/react-router' {
       path: '/$sessionKey/status'
       fullPath: '/api/sessions/$sessionKey/status'
       preLoaderRoute: typeof ApiSessionsSessionKeyStatusRouteImport
+      parentRoute: typeof ApiSessionsRoute
+    }
+    '/api/sessions/$sessionKey/active-run': {
+      id: '/api/sessions/$sessionKey/active-run'
+      path: '/$sessionKey/active-run'
+      fullPath: '/api/sessions/$sessionKey/active-run'
+      preLoaderRoute: typeof ApiSessionsSessionKeyActiveRunRouteImport
       parentRoute: typeof ApiSessionsRoute
     }
     '/api/kanban-tasks/$taskId/session': {
@@ -1163,15 +1569,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKanbanTasksTaskIdExecuteRouteImport
       parentRoute: typeof ApiKanbanTasksTaskIdRoute
     }
+    '/api/hermes-proxy/api/available-models': {
+      id: '/api/hermes-proxy/api/available-models'
+      path: '/api/hermes-proxy/api/available-models'
+      fullPath: '/api/hermes-proxy/api/available-models'
+      preLoaderRoute: typeof ApiHermesProxyApiAvailableModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface SettingsRouteChildren {
+  SettingsMcpRoute: typeof SettingsMcpRoute
   SettingsProvidersRoute: typeof SettingsProvidersRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsMcpRoute: SettingsMcpRoute,
   SettingsProvidersRoute: SettingsProvidersRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
@@ -1233,18 +1648,54 @@ const ApiKanbanTasksRouteWithChildren = ApiKanbanTasksRoute._addFileChildren(
   ApiKanbanTasksRouteChildren,
 )
 
+interface ApiMemoryRouteChildren {
+  ApiMemoryListRoute: typeof ApiMemoryListRoute
+  ApiMemoryReadRoute: typeof ApiMemoryReadRoute
+  ApiMemorySearchRoute: typeof ApiMemorySearchRoute
+  ApiMemoryWriteRoute: typeof ApiMemoryWriteRoute
+}
+
+const ApiMemoryRouteChildren: ApiMemoryRouteChildren = {
+  ApiMemoryListRoute: ApiMemoryListRoute,
+  ApiMemoryReadRoute: ApiMemoryReadRoute,
+  ApiMemorySearchRoute: ApiMemorySearchRoute,
+  ApiMemoryWriteRoute: ApiMemoryWriteRoute,
+}
+
+const ApiMemoryRouteWithChildren = ApiMemoryRoute._addFileChildren(
+  ApiMemoryRouteChildren,
+)
+
 interface ApiSessionsRouteChildren {
   ApiSessionsSendRoute: typeof ApiSessionsSendRoute
+  ApiSessionsSessionKeyActiveRunRoute: typeof ApiSessionsSessionKeyActiveRunRoute
   ApiSessionsSessionKeyStatusRoute: typeof ApiSessionsSessionKeyStatusRoute
 }
 
 const ApiSessionsRouteChildren: ApiSessionsRouteChildren = {
   ApiSessionsSendRoute: ApiSessionsSendRoute,
+  ApiSessionsSessionKeyActiveRunRoute: ApiSessionsSessionKeyActiveRunRoute,
   ApiSessionsSessionKeyStatusRoute: ApiSessionsSessionKeyStatusRoute,
 }
 
 const ApiSessionsRouteWithChildren = ApiSessionsRoute._addFileChildren(
   ApiSessionsRouteChildren,
+)
+
+interface ApiSkillsRouteChildren {
+  ApiSkillsHubSearchRoute: typeof ApiSkillsHubSearchRoute
+  ApiSkillsInstallRoute: typeof ApiSkillsInstallRoute
+  ApiSkillsUninstallRoute: typeof ApiSkillsUninstallRoute
+}
+
+const ApiSkillsRouteChildren: ApiSkillsRouteChildren = {
+  ApiSkillsHubSearchRoute: ApiSkillsHubSearchRoute,
+  ApiSkillsInstallRoute: ApiSkillsInstallRoute,
+  ApiSkillsUninstallRoute: ApiSkillsUninstallRoute,
+}
+
+const ApiSkillsRouteWithChildren = ApiSkillsRoute._addFileChildren(
+  ApiSkillsRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -1255,6 +1706,7 @@ const rootRouteChildren: RootRouteChildren = {
   FilesRoute: FilesRoute,
   JobsRoute: JobsRoute,
   MemoryRoute: MemoryRoute,
+  ProfilesRoute: ProfilesRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SkillsRoute: SkillsRoute,
   TerminalRoute: TerminalRoute,
@@ -1271,6 +1723,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHistoryRoute: ApiHistoryRoute,
   ApiKanbanBoardsRoute: ApiKanbanBoardsRouteWithChildren,
   ApiKanbanTasksRoute: ApiKanbanTasksRouteWithChildren,
+  ApiMemoryRoute: ApiMemoryRouteWithChildren,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,
@@ -1278,7 +1731,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSendStreamRoute: ApiSendStreamRoute,
   ApiSessionStatusRoute: ApiSessionStatusRoute,
   ApiSessionsRoute: ApiSessionsRouteWithChildren,
-  ApiSkillsRoute: ApiSkillsRoute,
+  ApiSkillsRoute: ApiSkillsRouteWithChildren,
   ApiStartAgentRoute: ApiStartAgentRoute,
   ApiStartHermesRoute: ApiStartHermesRoute,
   ApiTerminalCloseRoute: ApiTerminalCloseRoute,
@@ -1288,12 +1741,22 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWorkspaceRoute: ApiWorkspaceRoute,
   ChatSessionKeyRoute: ChatSessionKeyRoute,
   ChatIndexRoute: ChatIndexRoute,
-  ApiMemoryListRoute: ApiMemoryListRoute,
-  ApiMemoryReadRoute: ApiMemoryReadRoute,
-  ApiMemorySearchRoute: ApiMemorySearchRoute,
-  ApiMemoryWriteRoute: ApiMemoryWriteRoute,
+  ApiHermesProxySplatRoute: ApiHermesProxySplatRoute,
+  ApiKnowledgeGraphRoute: ApiKnowledgeGraphRoute,
+  ApiKnowledgeListRoute: ApiKnowledgeListRoute,
+  ApiKnowledgeReadRoute: ApiKnowledgeReadRoute,
+  ApiKnowledgeSearchRoute: ApiKnowledgeSearchRoute,
+  ApiMcpReloadRoute: ApiMcpReloadRoute,
+  ApiMcpServersRoute: ApiMcpServersRoute,
   ApiOauthDeviceCodeRoute: ApiOauthDeviceCodeRoute,
   ApiOauthPollTokenRoute: ApiOauthPollTokenRoute,
+  ApiProfilesActivateRoute: ApiProfilesActivateRoute,
+  ApiProfilesCreateRoute: ApiProfilesCreateRoute,
+  ApiProfilesDeleteRoute: ApiProfilesDeleteRoute,
+  ApiProfilesListRoute: ApiProfilesListRoute,
+  ApiProfilesReadRoute: ApiProfilesReadRoute,
+  ApiProfilesRenameRoute: ApiProfilesRenameRoute,
+  ApiHermesProxyApiAvailableModelsRoute: ApiHermesProxyApiAvailableModelsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,11 +1,12 @@
-export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done' | 'cancelled'
+export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'blocked' | 'done' | 'cancelled'
 export type TaskVisibility = 'yes' | 'no' | 'somewhat'
-export const COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in-progress', 'review', 'done']
+export const COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in-progress', 'review', 'blocked', 'done']
 export const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   todo: 'To Do',
   'in-progress': 'In Progress',
   review: 'Review',
+  blocked: 'Blocked',
   done: 'Done',
   cancelled: 'Cancelled',
 }

@@ -56,6 +56,7 @@ export function useKanbanDragDrop({
         'todo',
         'in-progress',
         'review',
+        'blocked',
         'done',
       ].includes(overId)
 

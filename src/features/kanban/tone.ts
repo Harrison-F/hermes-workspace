@@ -11,6 +11,7 @@ const STATUS_TEXT: Record<TaskStatus, string> = {
   todo: 'text-blue-500',
   'in-progress': 'text-orange-500',
   review: 'text-purple-500',
+  blocked: 'text-amber-500',
   done: 'text-emerald-500',
   cancelled: 'text-red-500',
 }
@@ -20,6 +21,7 @@ const STATUS_BG: Record<TaskStatus, string> = {
   todo: 'bg-blue-500/10',
   'in-progress': 'bg-orange-500/10',
   review: 'bg-purple-500/10',
+  blocked: 'bg-amber-500/10',
   done: 'bg-emerald-500/10',
   cancelled: 'bg-red-500/10',
 }
@@ -29,6 +31,7 @@ const STATUS_BORDER: Record<TaskStatus, string> = {
   todo: 'border-blue-500/30',
   'in-progress': 'border-orange-500/30',
   review: 'border-purple-500/30',
+  blocked: 'border-amber-500/30',
   done: 'border-emerald-500/30',
   cancelled: 'border-red-500/30',
 }

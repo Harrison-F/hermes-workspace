@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto'
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done' | 'cancelled'
+export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'blocked' | 'done' | 'cancelled'
 export type TaskVisibility = 'yes' | 'no' | 'somewhat'
 export type TaskActor = 'operator' | `agent:${string}`
 
@@ -85,6 +85,7 @@ const DEFAULT_BOARD_CONFIG: KanbanBoardConfig = {
     { key: 'todo', title: 'To Do', visible: true },
     { key: 'in-progress', title: 'In Progress', wipLimit: 5, visible: true },
     { key: 'review', title: 'Review', visible: true },
+    { key: 'blocked', title: 'Blocked', visible: true },
     { key: 'done', title: 'Done', visible: true },
     { key: 'cancelled', title: 'Cancelled', visible: false },
   ],
@@ -137,6 +138,7 @@ function normalizeStatus(value: unknown): TaskStatus {
     value === 'todo' ||
     value === 'in-progress' ||
     value === 'review' ||
+    value === 'blocked' ||
     value === 'done' ||
     value === 'cancelled'
     ? value

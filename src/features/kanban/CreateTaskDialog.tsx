@@ -33,6 +33,7 @@ const STATUS_OPTIONS: TaskStatus[] = [
   'todo',
   'in-progress',
   'review',
+  'blocked',
   'done',
 ]
 const VISIBILITY_OPTIONS: TaskVisibility[] = ['yes', 'no', 'somewhat']

@@ -30,6 +30,7 @@ function stripProviderPrefix(model: string): string {
 }
 
 const ONBOARDING_KEY = 'hermes-onboarding-complete'
+const LEGACY_ONBOARDING_KEYS = ['hermes-onboarding-completed'] as const
 
 type Step = 'welcome' | 'connect' | 'provider' | 'test' | 'done'
 
@@ -428,7 +429,10 @@ export function HermesOnboarding() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!localStorage.getItem(ONBOARDING_KEY)) {
+    const hasCompletedOnboarding = [ONBOARDING_KEY, ...LEGACY_ONBOARDING_KEYS].some(
+      (key) => localStorage.getItem(key),
+    )
+    if (!hasCompletedOnboarding) {
       setShow(true)
     }
   }, [])
@@ -455,6 +459,9 @@ export function HermesOnboarding() {
 
   const complete = useCallback(() => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
+    for (const legacyKey of LEGACY_ONBOARDING_KEYS) {
+      localStorage.setItem(legacyKey, 'true')
+    }
     setShow(false)
   }, [])
 

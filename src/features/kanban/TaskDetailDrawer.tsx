@@ -42,6 +42,7 @@ const STATUS_OPTIONS: TaskStatus[] = [
   'todo',
   'in-progress',
   'review',
+  'blocked',
   'done',
   'cancelled',
 ]

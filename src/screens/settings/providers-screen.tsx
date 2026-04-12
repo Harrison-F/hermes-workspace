@@ -50,7 +50,6 @@ import {
   getProviderInfo,
   normalizeProviderId,
 } from '@/lib/provider-catalog'
-import { getConfig, patchConfig } from '@/server/hermes-api'
 import { cn } from '@/lib/utils'
 
 type ProviderStatus = 'active' | 'configured'
@@ -110,7 +109,28 @@ type SaveSettingPayload = {
   label: string
 }
 
-const HERMES_API_URL = process.env.HERMES_API_URL || 'http://127.0.0.1:8642'
+async function getConfig(): Promise<HermesConfig> {
+  const response = await fetch('/api/hermes-config')
+  if (!response.ok) {
+    throw new Error(`Failed to load config (${response.status})`)
+  }
+  const payload = (await response.json()) as { config?: HermesConfig }
+  return payload.config ?? {}
+}
+
+async function patchConfig(
+  patch: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await fetch('/api/hermes-config', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to save config (${response.status})`)
+  }
+  return (await response.json()) as Record<string, unknown>
+}
 
 type HermesCatalogEntry =
   | string
@@ -132,7 +152,7 @@ async function fetchModels(): Promise<{
   models?: Array<ModelCatalogEntry>
   configuredProviders?: Array<string>
 }> {
-  const response = await fetch(`${HERMES_API_URL}/v1/models`)
+  const response = await fetch('/api/models')
   if (!response.ok) {
     throw new Error(`Hermes models request failed (${response.status})`)
   }
