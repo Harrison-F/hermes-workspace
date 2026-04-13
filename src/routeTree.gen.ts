@@ -55,6 +55,7 @@ import { Route as ApiConnectionStatusRouteImport } from './routes/api/connection
 import { Route as ApiChatEventsRouteImport } from './routes/api/chat-events'
 import { Route as ApiAuthCheckRouteImport } from './routes/api/auth-check'
 import { Route as ApiAuthRouteImport } from './routes/api/auth'
+import { Route as ApiVoiceTranscribeRouteImport } from './routes/api/voice.transcribe'
 import { Route as ApiSkillsUninstallRouteImport } from './routes/api/skills/uninstall'
 import { Route as ApiSkillsInstallRouteImport } from './routes/api/skills/install'
 import { Route as ApiSkillsHubSearchRouteImport } from './routes/api/skills/hub-search'
@@ -319,6 +320,11 @@ const ApiAuthRoute = ApiAuthRouteImport.update({
   path: '/api/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVoiceTranscribeRoute = ApiVoiceTranscribeRouteImport.update({
+  id: '/api/voice/transcribe',
+  path: '/api/voice/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSkillsUninstallRoute = ApiSkillsUninstallRouteImport.update({
   id: '/uninstall',
   path: '/uninstall',
@@ -565,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
   '/api/skills/install': typeof ApiSkillsInstallRoute
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
@@ -645,6 +652,7 @@ export interface FileRoutesByTo {
   '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
   '/api/skills/install': typeof ApiSkillsInstallRoute
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
@@ -727,6 +735,7 @@ export interface FileRoutesById {
   '/api/skills/hub-search': typeof ApiSkillsHubSearchRoute
   '/api/skills/install': typeof ApiSkillsInstallRoute
   '/api/skills/uninstall': typeof ApiSkillsUninstallRoute
+  '/api/voice/transcribe': typeof ApiVoiceTranscribeRoute
   '/api/hermes-proxy/api/available-models': typeof ApiHermesProxyApiAvailableModelsRoute
   '/api/kanban-tasks/$taskId/execute': typeof ApiKanbanTasksTaskIdExecuteRoute
   '/api/kanban-tasks/$taskId/reorder': typeof ApiKanbanTasksTaskIdReorderRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/api/skills/hub-search'
     | '/api/skills/install'
     | '/api/skills/uninstall'
+    | '/api/voice/transcribe'
     | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
@@ -890,6 +900,7 @@ export interface FileRouteTypes {
     | '/api/skills/hub-search'
     | '/api/skills/install'
     | '/api/skills/uninstall'
+    | '/api/voice/transcribe'
     | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
@@ -971,6 +982,7 @@ export interface FileRouteTypes {
     | '/api/skills/hub-search'
     | '/api/skills/install'
     | '/api/skills/uninstall'
+    | '/api/voice/transcribe'
     | '/api/hermes-proxy/api/available-models'
     | '/api/kanban-tasks/$taskId/execute'
     | '/api/kanban-tasks/$taskId/reorder'
@@ -1038,6 +1050,7 @@ export interface RootRouteChildren {
   ApiProfilesListRoute: typeof ApiProfilesListRoute
   ApiProfilesReadRoute: typeof ApiProfilesReadRoute
   ApiProfilesRenameRoute: typeof ApiProfilesRenameRoute
+  ApiVoiceTranscribeRoute: typeof ApiVoiceTranscribeRoute
   ApiHermesProxyApiAvailableModelsRoute: typeof ApiHermesProxyApiAvailableModelsRoute
 }
 
@@ -1363,6 +1376,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth'
       fullPath: '/api/auth'
       preLoaderRoute: typeof ApiAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice/transcribe': {
+      id: '/api/voice/transcribe'
+      path: '/api/voice/transcribe'
+      fullPath: '/api/voice/transcribe'
+      preLoaderRoute: typeof ApiVoiceTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/skills/uninstall': {
@@ -1777,6 +1797,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProfilesListRoute: ApiProfilesListRoute,
   ApiProfilesReadRoute: ApiProfilesReadRoute,
   ApiProfilesRenameRoute: ApiProfilesRenameRoute,
+  ApiVoiceTranscribeRoute: ApiVoiceTranscribeRoute,
   ApiHermesProxyApiAvailableModelsRoute: ApiHermesProxyApiAvailableModelsRoute,
 }
 export const routeTree = rootRouteImport

@@ -58,6 +58,7 @@ import { useMobileKeyboard } from '@/hooks/use-mobile-keyboard'
 import { ErrorBoundary } from '@/components/error-boundary'
 // System metrics footer removed — not used in Hermes Workspace
 import { CommandPalette } from '@/components/command-palette'
+import { VoiceDictationIndicator } from '@/components/voice-dictation-indicator'
 import { useSettings } from '@/hooks/use-settings'
 // ActivityTicker moved to dashboard-only (too noisy for global header)
 
@@ -590,6 +591,7 @@ export function WorkspaceShell() {
 
         {/* Floating chat toggle — visible on non-chat routes */}
         {!isOnChatRoute && !isMobile && <ChatPanelToggle />}
+        {!isMobile && <VoiceDictationIndicator />}
 
         {showDesktopSidebarBackdrop ? (
           <button

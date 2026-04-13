@@ -23,7 +23,7 @@ export type StartHermesAgentResult =
  * Read ~/.hermes/.env and return key=value pairs as an object.
  * Silently returns {} if the file doesn't exist or can't be parsed.
  */
-function readHermesEnv(): Record<string, string> {
+export function readHermesEnv(): Record<string, string> {
   const envPath = join(homedir(), '.hermes', '.env')
   try {
     const raw = readFileSync(envPath, 'utf-8')

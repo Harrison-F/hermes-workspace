@@ -2751,6 +2751,8 @@ export function ChatScreen({
                   ? undefined
                   : forcedSessionKey || resolvedSessionKey || activeSessionKey
               }
+              friendlyId={activeFriendlyId}
+              voiceOrigin={compact ? 'chat-panel' : 'chat-route'}
               wrapperRef={composerRef}
               composerRef={composerHandleRef}
               // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime safety

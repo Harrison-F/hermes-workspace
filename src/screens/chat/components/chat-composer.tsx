@@ -39,8 +39,13 @@ import { Button } from '@/components/ui/button'
 import { usePinnedModels } from '@/hooks/use-pinned-models'
 // import { ModeSelector } from '@/components/mode-selector'
 import { cn } from '@/lib/utils'
+import {
+  VOICE_DRAFT_UPDATED_EVENT,
+  toDraftStorageKey,
+} from '@/screens/chat/voice-draft-storage'
 import { useVoiceInput } from '@/hooks/use-voice-input'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
+import { useVoiceDictationStore } from '@/stores/voice-dictation-store'
 import { toast } from '@/components/ui/toast'
 
 type ChatComposerAttachment = {
@@ -65,6 +70,8 @@ type ChatComposerProps = {
   isLoading: boolean
   disabled: boolean
   sessionKey?: string
+  friendlyId?: string
+  voiceOrigin?: 'chat-route' | 'chat-panel'
   wrapperRef?: Ref<HTMLDivElement>
   composerRef?: Ref<ChatComposerHandle>
   focusKey?: string
@@ -646,16 +653,6 @@ function readModelFromStatusPayload(payload: unknown): string {
   return ''
 }
 
-function normalizeDraftSessionKey(sessionKey?: string): string {
-  if (typeof sessionKey !== 'string') return 'new'
-  const normalized = sessionKey.trim()
-  return normalized.length > 0 ? normalized : 'new'
-}
-
-function toDraftStorageKey(sessionKey?: string): string {
-  return `hermes-draft-${normalizeDraftSessionKey(sessionKey)}`
-}
-
 function readSlashCommandQuery(inputValue: string): string | null {
   if (!inputValue.startsWith('/')) return null
   const newlineIndex = inputValue.indexOf('\n')
@@ -727,6 +724,8 @@ function ChatComposerComponent({
   isLoading,
   disabled,
   sessionKey,
+  friendlyId,
+  voiceOrigin = 'chat-route',
   wrapperRef,
   composerRef,
   focusKey,
@@ -956,6 +955,11 @@ function ChatComposerComponent({
     () => toDraftStorageKey(sessionKey),
     [sessionKey],
   )
+  const voiceDictationStatus = useVoiceDictationStore((state) => state.status)
+  const voiceDictationSource = useVoiceDictationStore((state) => state.source)
+  const voiceDictationSupported = useVoiceDictationStore((state) => state.isSupported)
+  const startVoiceDictation = useVoiceDictationStore((state) => state.start)
+  const stopVoiceDictation = useVoiceDictationStore((state) => state.stop)
   const [currentSelectedModel, setCurrentSelectedModel] = useState<
     string | null
   >(null)
@@ -1077,6 +1081,25 @@ function ChatComposerComponent({
     if (typeof window === 'undefined') return
     const savedDraft = window.sessionStorage.getItem(draftStorageKey)
     setValue(savedDraft ?? '')
+  }, [draftStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    function handleVoiceDraftUpdated(event: Event) {
+      const detail = (event as CustomEvent<{ sessionKey?: string; value?: string }>).detail
+      if (!detail) return
+      if (toDraftStorageKey(detail.sessionKey) !== draftStorageKey) return
+      setValue(typeof detail.value === 'string' ? detail.value : '')
+    }
+
+    window.addEventListener(VOICE_DRAFT_UPDATED_EVENT, handleVoiceDraftUpdated)
+    return () => {
+      window.removeEventListener(
+        VOICE_DRAFT_UPDATED_EVENT,
+        handleVoiceDraftUpdated,
+      )
+    }
   }, [draftStorageKey])
 
   useEffect(() => {
@@ -1446,83 +1469,44 @@ function ChatComposerComponent({
   const _isWebSearchActive = webSearchEnabled ?? isWebSearchMode
   void _isWebSearchActive // retained for future use / external prop
 
-  // Voice input (tap = speech-to-text)
-  const voiceInput = useVoiceInput({
-    onResult: useCallback(
-      (text: string) => {
-        if (!text.trim()) return
-        setValue((prev) => {
-          const next = prev.trim().length > 0 ? `${prev} ${text}` : text
-          persistDraft(next)
-          return next
-        })
-      },
-      [persistDraft],
-    ),
-  })
+  const voiceDictationSessionKey =
+    typeof sessionKey === 'string' && sessionKey.trim().length > 0
+      ? sessionKey.trim()
+      : undefined
+  const voiceDictationFriendlyId =
+    typeof friendlyId === 'string' && friendlyId.trim().length > 0
+      ? friendlyId.trim()
+      : 'new'
+  const isVoiceDictationActiveForComposer =
+    (voiceDictationStatus === 'recording' || voiceDictationStatus === 'transcribing') &&
+    voiceDictationSource?.friendlyId === voiceDictationFriendlyId
+  const isVoiceDictationRecording =
+    voiceDictationStatus === 'recording' &&
+    voiceDictationSource?.friendlyId === voiceDictationFriendlyId
+  const isVoiceDictationTranscribing =
+    voiceDictationStatus === 'transcribing' &&
+    voiceDictationSource?.friendlyId === voiceDictationFriendlyId
 
-  // Voice recorder (long-press = voice note)
-  const voiceRecorder = useVoiceRecorder({
-    onRecorded: useCallback(
-      (blob: Blob, durationMs: number) => {
-        const ext = blob.type.includes('webm') ? 'webm' : 'mp4'
-        const name = `voice-note-${Date.now()}.${ext}`
-        const reader = new FileReader()
-        reader.onload = () => {
-          const dataUrl = typeof reader.result === 'string' ? reader.result : ''
-          if (!dataUrl) return
-          const secs = Math.round(durationMs / 1000)
-          setAttachments((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              name,
-              contentType: blob.type || 'audio/webm',
-              size: blob.size,
-              dataUrl,
-              previewUrl: '',
-            },
-          ])
-          // Auto-add duration caption to message
-          setValue((prev) => {
-            const caption = `🎤 Voice note (${secs}s)`
-            const next =
-              prev.trim().length > 0 ? `${prev}\n${caption}` : caption
-            persistDraft(next)
-            return next
-          })
-        }
-        reader.readAsDataURL(blob)
-      },
-      [persistDraft],
-    ),
-  })
-
-  // Long-press detection for mic button
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isLongPressRef = useRef(false)
-  const handleMicPointerDown = useCallback(() => {
-    isLongPressRef.current = false
-    // Start long-press timer for voice note recording (only if not already doing voice-to-text)
-    if (!voiceInput.isListening && !voiceRecorder.isRecording) {
-      longPressTimerRef.current = setTimeout(() => {
-        isLongPressRef.current = true
-        voiceRecorder.start()
-      }, 500)
+  const handleVoiceDictationToggle = useCallback(() => {
+    if (isVoiceDictationRecording) {
+      stopVoiceDictation()
+      return
     }
-  }, [voiceRecorder, voiceInput.isListening])
-  const handleMicPointerUp = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-    if (isLongPressRef.current) {
-      // Was a long press — stop voice note recording
-      voiceRecorder.stop()
-      isLongPressRef.current = false
-    }
-    // Short taps are handled by onClick for voice-to-text toggle
-  }, [voiceRecorder])
+    if (isVoiceDictationTranscribing) return
+    startVoiceDictation({
+      sessionKey: voiceDictationSessionKey,
+      friendlyId: voiceDictationFriendlyId,
+      origin: voiceOrigin,
+    })
+  }, [
+    isVoiceDictationRecording,
+    isVoiceDictationTranscribing,
+    startVoiceDictation,
+    stopVoiceDictation,
+    voiceDictationFriendlyId,
+    voiceDictationSessionKey,
+    voiceOrigin,
+  ])
 
   const handleAbort = useCallback(
     function handleAbort() {
@@ -1966,49 +1950,30 @@ function ChatComposerComponent({
                       strokeWidth={2}
                     />
                   </button>
-                ) : voiceInput.isSupported || voiceRecorder.isSupported ? (
+                ) : voiceDictationSupported ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (voiceInput.isListening) {
-                        voiceInput.stop()
-                      } else if (voiceRecorder.isRecording) {
-                        voiceRecorder.stop()
-                      } else {
-                        voiceInput.start()
-                      }
-                    }}
-                    onPointerDown={handleMicPointerDown}
-                    onPointerUp={handleMicPointerUp}
-                    onPointerLeave={handleMicPointerUp}
+                    onClick={handleVoiceDictationToggle}
                     aria-label={
-                      voiceRecorder.isRecording
-                        ? 'Recording voice note'
-                        : voiceInput.isListening
-                          ? 'Stop listening'
-                          : 'Voice input'
+                      isVoiceDictationTranscribing
+                        ? 'Transcribing voice dictation'
+                        : isVoiceDictationRecording
+                          ? 'Stop voice dictation'
+                          : 'Start voice dictation'
                     }
-                    disabled={disabled}
+                    disabled={disabled || isVoiceDictationTranscribing}
                     className={cn(
                       'size-9 rounded-full flex items-center justify-center relative transition-all duration-150 select-none',
-                      voiceRecorder.isRecording
+                      isVoiceDictationActiveForComposer
                         ? 'text-red-600 bg-red-100 animate-pulse'
-                        : voiceInput.isListening
-                          ? 'text-red-500 bg-red-50 animate-pulse'
-                          : 'text-primary-500 bg-neutral-100 dark:bg-white/10',
+                        : 'text-primary-500 bg-neutral-100 dark:bg-white/10',
                     )}
                   >
                     <HugeiconsIcon
-                      icon={Mic01Icon}
+                      icon={isVoiceDictationActiveForComposer ? StopIcon : Mic01Icon}
                       size={20}
                       strokeWidth={1.5}
                     />
-                    {voiceRecorder.isRecording ? (
-                      <span className="absolute -top-1 -right-1 flex size-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex size-3 rounded-full bg-red-500" />
-                      </span>
-                    ) : null}
                   </button>
                 ) : (
                   <button
@@ -2605,60 +2570,40 @@ function ChatComposerComponent({
                 </div>
               </div>
               <div className="ml-1 flex shrink-0 items-center gap-0.5 md:gap-1">
-                {voiceInput.isSupported || voiceRecorder.isSupported ? (
+                {voiceDictationSupported ? (
                   <PromptInputAction
                     tooltip={
-                      voiceRecorder.isRecording
-                        ? `Recording… ${Math.round(voiceRecorder.durationMs / 1000)}s`
-                        : voiceInput.isListening
-                          ? 'Listening — tap to stop'
-                          : 'Tap: dictate · Hold: voice note'
+                      isVoiceDictationTranscribing
+                        ? 'Transcribing voice dictation…'
+                        : isVoiceDictationRecording
+                          ? 'Recording — click to stop'
+                          : 'Start voice dictation'
                     }
                   >
                     <Button
-                      onClick={() => {
-                        // Toggle voice input on click
-                        if (voiceInput.isListening) {
-                          voiceInput.stop()
-                        } else if (voiceRecorder.isRecording) {
-                          voiceRecorder.stop()
-                        } else {
-                          voiceInput.start()
-                        }
-                      }}
-                      onPointerDown={handleMicPointerDown}
-                      onPointerUp={handleMicPointerUp}
-                      onPointerLeave={handleMicPointerUp}
+                      onClick={handleVoiceDictationToggle}
                       size="icon-sm"
                       variant="ghost"
                       className={cn(
                         'rounded-lg transition-colors select-none',
-                        voiceRecorder.isRecording
+                        isVoiceDictationActiveForComposer
                           ? 'text-red-600 bg-red-100 hover:bg-red-200 animate-pulse'
-                          : voiceInput.isListening
-                            ? 'text-red-500 bg-red-50 hover:bg-red-100 animate-pulse'
-                            : 'text-primary-500 hover:bg-primary-100 dark:hover:bg-primary-800 hover:text-primary-700',
+                          : 'text-primary-500 hover:bg-primary-100 dark:hover:bg-primary-800 hover:text-primary-700',
                       )}
                       aria-label={
-                        voiceRecorder.isRecording
-                          ? 'Recording voice note'
-                          : voiceInput.isListening
-                            ? 'Stop listening'
-                            : 'Voice input'
+                        isVoiceDictationTranscribing
+                          ? 'Transcribing voice dictation'
+                          : isVoiceDictationRecording
+                            ? 'Stop voice dictation'
+                            : 'Start voice dictation'
                       }
-                      disabled={disabled}
+                      disabled={disabled || isVoiceDictationTranscribing}
                     >
                       <HugeiconsIcon
-                        icon={Mic01Icon}
+                        icon={isVoiceDictationActiveForComposer ? StopIcon : Mic01Icon}
                         size={20}
                         strokeWidth={1.5}
                       />
-                      {voiceRecorder.isRecording ? (
-                        <span className="absolute -top-1 -right-1 flex size-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                          <span className="relative inline-flex size-3 rounded-full bg-red-500" />
-                        </span>
-                      ) : null}
                     </Button>
                   </PromptInputAction>
                 ) : null}
