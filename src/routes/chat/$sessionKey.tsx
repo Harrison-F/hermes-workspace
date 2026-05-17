@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { moveHistoryMessages } from '../../screens/chat/chat-queries'
+import {
+  moveHistoryMessages,
+  reconcileSessionDraft,
+} from '../../screens/chat/chat-queries'
 import { ErrorBoundary } from '@/components/error-boundary'
 
 const ChatScreen = lazy(async () => {
@@ -92,6 +95,13 @@ function ChatRoute() {
         payload.friendlyId,
         payload.sessionKey,
       )
+      reconcileSessionDraft(
+        queryClient,
+        sourceFriendlyId,
+        sourceSessionKey,
+        payload.friendlyId,
+        payload.sessionKey,
+      )
       queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
       setForcedSession({
         friendlyId: payload.friendlyId,
@@ -99,7 +109,7 @@ function ChatRoute() {
       })
       // Persist last session for refresh recovery
       try {
-        localStorage.setItem('hermes-last-session', payload.friendlyId)
+        localStorage.setItem('claude-last-session', payload.friendlyId)
       } catch {}
       navigate({
         to: '/chat/$sessionKey',

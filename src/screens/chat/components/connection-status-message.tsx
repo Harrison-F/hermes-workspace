@@ -26,7 +26,7 @@ function classifyConnectionError(
   if (!normalizedError && !status) {
     return {
       title: 'Not connected',
-      description: "Hermes Workspace can't reach Hermes.",
+      description: "Hermes Workspace can't reach Hermes Agent.",
       action: 'Check that Hermes is running, then try again.',
     }
   }
@@ -39,8 +39,8 @@ function classifyConnectionError(
   ) {
     return {
       title: 'Authentication required',
-      description: 'Hermes rejected the connection token.',
-      action: 'Go to Settings -> Advanced -> Hermes to update your token.',
+      description: 'Hermes Agent rejected the connection token.',
+      action: 'Go to Settings -> Advanced -> Hermes Agent to update your token.',
     }
   }
 
@@ -51,16 +51,16 @@ function classifyConnectionError(
   ) {
     return {
       title: 'Pairing required',
-      description: "This device isn't paired with Hermes yet.",
+      description: "This device isn't paired with Hermes Agent yet.",
       action: 'Check Hermes Agent connection.',
     }
   }
 
   if (lower.includes('econnrefused') && lower.includes('8642')) {
     return {
-      title: 'Hermes WebAPI not running',
-      description: 'The Hermes WebAPI server is not running on port 8642.',
-      action: 'Run: cd hermes-agent && pip install -e . && hermes-webapi',
+      title: 'Hermes Agent gateway not running',
+      description: 'The Hermes Agent gateway is not running on port 8642.',
+      action: 'Run the official Hermes installer, then start the gateway with: hermes gateway run',
     }
   }
 
@@ -72,8 +72,8 @@ function classifyConnectionError(
     lower.includes('timeout')
   ) {
     return {
-      title: 'Hermes unreachable',
-      description: "Can't connect to Hermes at the configured URL.",
+      title: 'Hermes Agent unreachable',
+      description: "Can't connect to Hermes Agent at the configured URL.",
       action: 'Make sure Hermes is running and the URL is correct.',
     }
   }
@@ -103,9 +103,9 @@ export function ConnectionStatusMessage({
       setFadingOut(true)
       setTimeout(() => setVisible(false), 300)
     }
-    window.addEventListener('hermes:health-restored', handleRestored)
+    window.addEventListener('claude:health-restored', handleRestored)
     return () =>
-      window.removeEventListener('hermes:health-restored', handleRestored)
+      window.removeEventListener('claude:health-restored', handleRestored)
   }, [])
 
   if (!visible) return null
@@ -134,7 +134,7 @@ export function ConnectionStatusMessage({
         />
         <div className="flex-1 text-xs">
           <p className="font-medium">
-            {isChecking ? 'Connecting to Hermes...' : errorInfo.title}
+            {isChecking ? 'Connecting to Hermes Agent...' : errorInfo.title}
           </p>
           {!isChecking ? (
             <>

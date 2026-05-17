@@ -6,7 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import { writeTextToClipboard } from '@/lib/clipboard'
 
-const STORAGE_KEY_SEEN = 'hermes-mobile-setup-seen'
+const STORAGE_KEY_SEEN = 'claude-mobile-setup-seen'
 
 interface MobileSetupModalProps {
   isOpen: boolean
@@ -81,7 +81,7 @@ export function MobileSetupModal({ isOpen, onClose }: MobileSetupModalProps) {
       showTailscaleIcon: false,
       action: (
         <div className="rounded-lg border border-primary-700 bg-primary-950 px-4 py-3 text-sm text-primary-200">
-          Enhanced Hermes gateway APIs are optional. If core chat already works
+          Enhanced Hermes Agent gateway APIs are optional. If core chat already works
           on desktop, mobile access mainly depends on network reachability.
         </div>
       ),
@@ -221,8 +221,8 @@ export function MobileSetupModal({ isOpen, onClose }: MobileSetupModalProps) {
 
         <div className="mb-4 flex items-center gap-3 pr-10">
           <img
-            src="/hermes-avatar.webp"
-            alt="Hermes"
+            src="/claude-avatar.webp"
+            alt="Hermes Agent"
             className="size-9 rounded-xl"
           />
           <div className="flex-1">

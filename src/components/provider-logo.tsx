@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const LIGHT_THEMES = new Set([
-  'hermes-official-light',
-  'hermes-classic-light',
-  'hermes-slate-light',
-  'hermes-mono-light',
+  'claude-nous-light',
+  'claude-official-light',
+  'claude-classic-light',
+  'claude-slate-light',
 ])
 
 function useIsLightTheme(): boolean {
@@ -46,6 +46,7 @@ export function ProviderLogo({
     anthropic: 'anthropic.png',
     openrouter: 'openrouter.png',
     ollama: 'ollama.png',
+    'atomic-chat': 'atomic-chat.png',
     kimi: 'kimi.png',
     'kimi-coding': 'kimi.png',
     minimax: 'minimax.png',

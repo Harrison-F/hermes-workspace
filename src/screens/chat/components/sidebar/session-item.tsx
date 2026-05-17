@@ -81,6 +81,9 @@ function getSessionDisplayTitle(
   const derivedTitle = normalizeTitleValue(session.derivedTitle)
   if (derivedTitle) return derivedTitle
 
+  const title = normalizeTitleValue(session.title)
+  if (title) return title
+
   if (isGenerating) return 'Naming…'
   const shortId = getSessionShortId(session)
   return shortId ? `Session ${shortId}` : 'Session'
@@ -127,7 +130,7 @@ function SessionItemComponent({
       params={{ sessionKey: session.friendlyId }}
       onClick={() => {
         try {
-          localStorage.setItem('hermes-last-session', session.friendlyId)
+          localStorage.setItem('claude-last-session', session.friendlyId)
         } catch {}
         onSelect?.()
       }}

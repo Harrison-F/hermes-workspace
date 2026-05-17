@@ -4,6 +4,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Load workspace configuration before deriving runtime settings or building.
+# Services and non-interactive shells often do not export the .env values, which
+# can leave the stable launcher without Hermes API/dashboard tokens or URLs.
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
+
 PORT="${PORT:-3002}"
 RUNTIME_DIR="$ROOT/.runtime"
 PID_FILE="$RUNTIME_DIR/hermes-workspace.pid"
@@ -38,6 +48,7 @@ for pid in $(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true); do
 done
 
 echo "[stable] building Hermes Workspace..."
+rm -rf dist
 pnpm build >"$BUILD_LOG_FILE" 2>&1
 
 echo "[stable] starting Hermes Workspace on port $PORT..."
@@ -46,8 +57,8 @@ new_pid=$!
 echo "$new_pid" >"$PID_FILE"
 
 for _ in {1..40}; do
-  if curl -fsS "http://127.0.0.1:$PORT/" >/dev/null 2>&1; then
-    echo "[stable] up on http://127.0.0.1:$PORT"
+  if curl -fsS "http://127.0.0.1:$PORT/chat/new" >/dev/null 2>&1; then
+    echo "[stable] up on http://127.0.0.1:$PORT/chat/new"
     echo "[stable] pid=$new_pid"
     echo "[stable] log=$LOG_FILE"
     exit 0

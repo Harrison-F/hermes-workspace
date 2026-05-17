@@ -1,13 +1,115 @@
+import os from 'node:os'
+import path from 'node:path'
+import fs from 'node:fs/promises'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import {
-  HERMES_UPGRADE_INSTRUCTIONS,
+  BEARER_TOKEN,
+  CLAUDE_API,
+  CLAUDE_UPGRADE_INSTRUCTIONS,
+  dashboardFetch,
   ensureGatewayProbed,
   getCapabilities,
 } from '../../server/gateway-capabilities'
 import { requireJsonContentType } from '../../server/rate-limit'
 import { createCapabilityUnavailablePayload } from '@/lib/feature-gates'
+
+function getSkillsDir(): string {
+  return (
+    process.env.HERMES_SKILLS_DIR ||
+    path.join(
+      process.env.HERMES_HOME || path.join(os.homedir(), '.hermes'),
+      'skills',
+    )
+  )
+}
+
+type LocalSkillMeta = { path: string; author: string }
+
+async function readSkillAuthor(skillDir: string): Promise<string> {
+  try {
+    const raw = await fs.readFile(path.join(skillDir, 'SKILL.md'), 'utf-8')
+    const fmEnd = raw.indexOf('\n---', 4)
+    const fm = fmEnd > 0 ? raw.slice(0, fmEnd) : raw.slice(0, 1024)
+    const match = fm.match(/^author:\s*(.+?)\s*$/m)
+    return match?.[1]?.trim().replace(/^["']|["']$/g, '') || ''
+  } catch {
+    return ''
+  }
+}
+
+async function buildLocalSkillPathMap(): Promise<Map<string, LocalSkillMeta>> {
+  const root = getSkillsDir()
+  const map = new Map<string, LocalSkillMeta>()
+  let categoryEntries: Array<{ name: string; isDirectory: () => boolean }>
+  try {
+    categoryEntries = (await fs.readdir(root, {
+      withFileTypes: true,
+    })) as unknown as Array<{
+      name: string
+      isDirectory: () => boolean
+    }>
+  } catch {
+    return map
+  }
+
+  const collect: Array<Promise<void>> = []
+  for (const cat of categoryEntries) {
+    if (!cat.isDirectory() || cat.name.startsWith('.')) continue
+    const catPath = path.join(root, cat.name)
+    let skillEntries: Array<{
+      name: string
+      isDirectory: () => boolean
+    }>
+    try {
+      skillEntries = (await fs.readdir(catPath, {
+        withFileTypes: true,
+      })) as unknown as Array<{
+        name: string
+        isDirectory: () => boolean
+      }>
+    } catch {
+      continue
+    }
+    for (const skill of skillEntries) {
+      if (!skill.isDirectory() || skill.name.startsWith('.')) continue
+      const fullPath = path.join(catPath, skill.name)
+      if (map.has(skill.name)) continue
+      collect.push(
+        readSkillAuthor(fullPath).then((author) => {
+          map.set(skill.name, { path: fullPath, author })
+        }),
+      )
+    }
+  }
+  await Promise.all(collect)
+  return map
+}
+
+async function loadBundledManifest(): Promise<Set<string>> {
+  const manifestPath = path.join(getSkillsDir(), '.bundled_manifest')
+  try {
+    const raw = await fs.readFile(manifestPath, 'utf-8')
+    return new Set(
+      raw
+        .split('\n')
+        .map((line) => line.split(':')[0]?.trim() || '')
+        .filter(Boolean),
+    )
+  } catch {
+    return new Set()
+  }
+}
+
+function deriveOrigin(
+  skill: SkillSummary,
+  bundled: Set<string>,
+): SkillSummary['origin'] {
+  if (bundled.has(skill.id) || bundled.has(skill.slug)) return 'builtin'
+  if (skill.author === 'Hermes Agent' && skill.sourcePath) return 'agent-created'
+  return 'marketplace'
+}
 
 type SkillsTab = 'installed' | 'marketplace' | 'featured'
 type SkillsSort = 'name' | 'category'
@@ -37,9 +139,8 @@ type SkillSummary = {
   builtin?: boolean
   featuredGroup?: string
   security: SecurityRisk
+  origin: 'builtin' | 'agent-created' | 'marketplace'
 }
-
-const HERMES_API_URL = process.env.HERMES_API_URL || 'http://127.0.0.1:8642'
 
 const KNOWN_CATEGORIES = [
   'All',
@@ -118,12 +219,80 @@ function normalizeSecurity(value: unknown): SecurityRisk {
   }
 }
 
+const CATEGORY_ALIASES: Record<string, string> = {
+  research: 'Search & Research',
+  'search-and-research': 'Search & Research',
+  search: 'Search & Research',
+  feeds: 'Search & Research',
+  'web-frontend': 'Web & Frontend',
+  frontend: 'Web & Frontend',
+  web: 'Web & Frontend',
+  'software-development': 'Coding Agents',
+  coding: 'Coding Agents',
+  development: 'Coding Agents',
+  devops: 'DevOps & Cloud',
+  cloud: 'DevOps & Cloud',
+  'devops-cloud': 'DevOps & Cloud',
+  mlops: 'DevOps & Cloud',
+  git: 'Git & GitHub',
+  github: 'Git & GitHub',
+  'git-github': 'Git & GitHub',
+  browser: 'Browser & Automation',
+  automation: 'Browser & Automation',
+  'browser-automation': 'Browser & Automation',
+  image: 'Image & Video',
+  video: 'Image & Video',
+  media: 'Image & Video',
+  creative: 'Image & Video',
+  'image-video': 'Image & Video',
+  gifs: 'Image & Video',
+  diagramming: 'Image & Video',
+  'autonomous-ai-agents': 'AI & LLMs',
+  ai: 'AI & LLMs',
+  llm: 'AI & LLMs',
+  agents: 'AI & LLMs',
+  mcp: 'AI & LLMs',
+  'inference-sh': 'AI & LLMs',
+  'data-science': 'Data & Analytics',
+  data: 'Data & Analytics',
+  'social-media': 'Marketing & Sales',
+  social: 'Marketing & Sales',
+  email: 'Communication',
+  'note-taking': 'Productivity',
+  notetaking: 'Productivity',
+  notes: 'Productivity',
+  'smart-home': 'Productivity',
+  apple: 'Productivity',
+  leisure: 'Productivity',
+  gaming: 'Productivity',
+  'red-teaming': 'AI & LLMs',
+  domain: 'Productivity',
+  dogfood: 'Productivity',
+  productivity: 'Productivity',
+}
+
+const KNOWN_CATEGORY_SET = new Set<string>(
+  KNOWN_CATEGORIES.filter((c) => c !== 'All'),
+)
+const KNOWN_CATEGORY_LOWER = new Map<string, string>(
+  Array.from(KNOWN_CATEGORY_SET).map((c) => [c.toLowerCase(), c]),
+)
+
+function normalizeCategoryLabel(raw: string): string {
+  if (KNOWN_CATEGORY_SET.has(raw)) return raw
+  const lower = raw.toLowerCase()
+  const caseMatch = KNOWN_CATEGORY_LOWER.get(lower)
+  if (caseMatch) return caseMatch
+  const key = lower.replace(/[\s&]+/g, '-').replace(/-+/g, '-')
+  return CATEGORY_ALIASES[key] ?? CATEGORY_ALIASES[lower] ?? raw
+}
+
 function guessCategory(record: Record<string, unknown>): string {
   const direct =
     readString(record.category) ||
     readString(record.group) ||
     readString(record.section)
-  if (direct) return direct
+  if (direct) return normalizeCategoryLabel(direct)
   const tags = readStringArray(record.tags).map((tag) => tag.toLowerCase())
   if (tags.some((tag) => tag.includes('frontend') || tag.includes('react'))) {
     return 'Web & Frontend'
@@ -133,6 +302,9 @@ function guessCategory(record: Record<string, unknown>): string {
   }
   if (tags.some((tag) => tag.includes('git'))) {
     return 'Git & GitHub'
+  }
+  if (tags.some((tag) => tag.includes('research') || tag.includes('search'))) {
+    return 'Search & Research'
   }
   if (tags.some((tag) => tag.includes('ai') || tag.includes('llm'))) {
     return 'AI & LLMs'
@@ -176,19 +348,28 @@ function normalizeSkill(value: unknown): SkillSummary | null {
         ? record.fileCount
         : 0,
     sourcePath,
-    installed: Boolean(record.installed ?? false),
-    enabled: Boolean(record.enabled ?? record.installed ?? false),
+    // Claude /api/skills returns the installed skill inventory. Older payloads
+    // omit explicit installed/enabled flags, so default to installed=true.
+    installed: Boolean(record.installed ?? true),
+    enabled: Boolean(record.enabled ?? record.installed ?? true),
     builtin: Boolean(record.builtin),
     featuredGroup: undefined,
     security: normalizeSecurity(record.security),
+    origin: 'marketplace' as const,
   }
 }
 
-async function fetchHermesSkills(): Promise<Array<SkillSummary>> {
-  const response = await fetch(`${HERMES_API_URL}/api/skills`)
+async function fetchClaudeSkills(): Promise<Array<SkillSummary>> {
+  const capabilities = getCapabilities()
+  const headers: Record<string, string> = {}
+  if (BEARER_TOKEN) headers['Authorization'] = `Bearer ${BEARER_TOKEN}`
+
+  const response = capabilities.dashboard.available
+    ? await dashboardFetch('/api/skills')
+    : await fetch(`${CLAUDE_API}/api/skills`, { headers })
   if (!response.ok) {
     const body = await response.text().catch(() => '')
-    throw new Error(body || `Hermes skills request failed (${response.status})`)
+    throw new Error(body || `Claude skills request failed (${response.status})`)
   }
 
   const payload = (await response.json()) as unknown
@@ -240,8 +421,8 @@ export const Route = createFileRoute('/api/skills')({
         if (!isAuthenticated(request)) {
           return json({ ok: false, error: 'Unauthorized' }, { status: 401 })
         }
-        await ensureGatewayProbed()
-        if (!getCapabilities().skills) {
+        const capabilities = await ensureGatewayProbed()
+        if (!capabilities.skills) {
           return json({
             ...createCapabilityUnavailablePayload('skills'),
             items: [],
@@ -263,6 +444,7 @@ export const Route = createFileRoute('/api/skills')({
               : 'installed'
           const rawSearch = (url.searchParams.get('search') || '').trim()
           const category = (url.searchParams.get('category') || 'All').trim()
+          const origin = (url.searchParams.get('origin') || 'All').trim()
           const sortParam = (url.searchParams.get('sort') || 'name').trim()
           const sort: SkillsSort =
             sortParam === 'category' || sortParam === 'name'
@@ -274,7 +456,22 @@ export const Route = createFileRoute('/api/skills')({
             Math.max(1, Number(url.searchParams.get('limit') || '30')),
           )
 
-          const sourceItems = await fetchHermesSkills()
+          const [sourceItems, localPathMap, bundledManifest] = await Promise.all([
+            fetchClaudeSkills(),
+            buildLocalSkillPathMap(),
+            loadBundledManifest(),
+          ])
+          for (const skill of sourceItems) {
+            if (skill.installed) {
+              const meta =
+                localPathMap.get(skill.id) || localPathMap.get(skill.slug)
+              if (meta) {
+                if (!skill.sourcePath) skill.sourcePath = meta.path
+                if (!skill.author) skill.author = meta.author
+              }
+            }
+            skill.origin = deriveOrigin(skill, bundledManifest)
+          }
           const installedLookup = new Set(
             sourceItems
               .filter((skill) => skill.installed)
@@ -304,6 +501,7 @@ export const Route = createFileRoute('/api/skills')({
                 if (category !== 'All' && skill.category !== category) {
                   return false
                 }
+                if (origin !== 'All' && skill.origin !== origin) return false
                 return true
               }),
             sort,
@@ -330,12 +528,12 @@ export const Route = createFileRoute('/api/skills')({
         if (!isAuthenticated(request)) {
           return json({ ok: false, error: 'Unauthorized' }, { status: 401 })
         }
-        await ensureGatewayProbed()
-        if (!getCapabilities().skills) {
+        const capabilities = await ensureGatewayProbed()
+        if (!capabilities.skills) {
           return json(
             {
               ...createCapabilityUnavailablePayload('skills', {
-                error: `Gateway does not support /api/skills. ${HERMES_UPGRADE_INSTRUCTIONS}`,
+                error: `Gateway does not support /api/skills. ${CLAUDE_UPGRADE_INSTRUCTIONS}`,
               }),
             },
             { status: 503 },
@@ -344,14 +542,84 @@ export const Route = createFileRoute('/api/skills')({
         const csrfCheck = requireJsonContentType(request)
         if (csrfCheck) return csrfCheck
 
-        return json(
-          {
-            ok: false,
-            error:
-              'Skill installation is not available in the Hermes Workspace fork.',
-          },
-          { status: 501 },
-        )
+        try {
+          const body = (await request.json()) as {
+            action?: string
+            identifier?: string
+            name?: string
+            category?: string
+            force?: boolean
+            enabled?: boolean
+          }
+          const action = (body.action || 'install').trim()
+
+          let endpoint: string
+          let payload: Record<string, unknown>
+
+          if (action === 'uninstall') {
+            endpoint = '/api/skills/uninstall'
+            payload = { name: body.name || body.identifier || '' }
+          } else if (action === 'toggle') {
+            endpoint = '/api/skills/toggle'
+            payload = {
+              name: body.name || body.identifier || '',
+              enabled: body.enabled,
+            }
+          } else {
+            endpoint = '/api/skills/install'
+            payload = {
+              identifier: body.identifier || '',
+              category: body.category || '',
+              force: Boolean(body.force),
+            }
+          }
+
+          if (capabilities.dashboard.available) {
+            if (action !== 'toggle') {
+              return json(
+                {
+                  ok: false,
+                  error:
+                    'Skill install/uninstall is only available on the legacy enhanced fork right now. Zero-fork mode supports listing and toggling installed skills.',
+                },
+                { status: 501 },
+              )
+            }
+
+            const response = await dashboardFetch('/api/skills/toggle', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: AbortSignal.timeout(30_000),
+            })
+
+            const result = await response.json()
+            return json(result, { status: response.status })
+          }
+
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          }
+          if (BEARER_TOKEN) headers['Authorization'] = `Bearer ${BEARER_TOKEN}`
+
+          const response = await fetch(`${CLAUDE_API}${endpoint}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(120_000),
+          })
+
+          const result = await response.json()
+          return json(result, { status: response.status })
+        } catch (err) {
+          return json(
+            {
+              ok: false,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            { status: 500 },
+          )
+        }
       },
     },
   },

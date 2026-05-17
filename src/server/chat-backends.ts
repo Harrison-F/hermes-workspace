@@ -1,4 +1,4 @@
-import { streamChat } from './hermes-api'
+import { streamChat } from './claude-api'
 import { resolveChatBackend } from './chat-mode'
 import { openaiChat } from './openai-compat-api'
 
@@ -16,7 +16,7 @@ export type UnifiedChatOptions = {
   attachments?: Array<Record<string, unknown>>
 }
 
-async function* streamHermesChat(
+async function* streamClaudeChat(
   messages: Array<ChatMessage>,
   options: UnifiedChatOptions,
 ): AsyncGenerator<string, void, void> {
@@ -111,9 +111,9 @@ export async function sendChatUnified(
     })
   }
 
-  if (backend === 'hermes-enhanced') {
+  if (backend === 'claude-enhanced') {
     let text = ''
-    for await (const delta of streamHermesChat(messages, options)) {
+    for await (const delta of streamClaudeChat(messages, options)) {
       text += delta
     }
     return text
@@ -138,14 +138,16 @@ export async function streamChatUnified(
     // Adapt StreamChunkType to plain string for legacy callers
     async function* toStringStream() {
       for await (const chunk of rawStream) {
-        yield chunk.text
+        if (chunk.type === 'content' || chunk.type === 'reasoning') {
+          yield chunk.text
+        }
       }
     }
     return toStringStream()
   }
 
-  if (backend === 'hermes-enhanced') {
-    return streamHermesChat(messages, options)
+  if (backend === 'claude-enhanced') {
+    return streamClaudeChat(messages, options)
   }
 
   throw new Error('No chat backend available')

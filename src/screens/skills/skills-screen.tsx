@@ -48,6 +48,7 @@ type SkillSummary = {
   enabled: boolean
   featuredGroup?: string
   security?: SecurityRisk
+  origin?: 'builtin' | 'agent-created' | 'marketplace'
 }
 
 type SkillsApiResponse = {
@@ -68,15 +69,20 @@ type HubSkill = {
   tags: Array<string>
   downloads?: number
   stars?: number
-  source: 'clawhub' | 'official' | 'github'
+  source: string
+  identifier?: string
+  trust_level?: string
+  repo?: string | null
   installCommand?: string
-  homepage?: string
+  homepage?: string | null
   installed: boolean
+  extra?: Record<string, unknown>
 }
 
 type HubSearchResponse = {
   results: Array<HubSkill>
   source: string
+  total?: number
   error?: string
 }
 
@@ -128,6 +134,7 @@ export function SkillsScreen() {
   const [debouncedMarketplaceSearch, setDebouncedMarketplaceSearch] =
     useState('')
   const [category, setCategory] = useState('All')
+  const [origin, setOrigin] = useState<string>('All')
   const [sort, setSort] = useState<SkillsSort>('name')
   const [page, setPage] = useState(1)
   const [actionSkillId, setActionSkillId] = useState<string | null>(null)
@@ -147,12 +154,13 @@ export function SkillsScreen() {
   }, [searchInput, tab])
 
   const skillsQuery = useQuery({
-    queryKey: ['skills-browser', tab, searchInput, category, page, sort],
+    queryKey: ['skills-browser', tab, searchInput, category, origin, page, sort],
     queryFn: async function fetchSkills(): Promise<SkillsApiResponse> {
       const params = new URLSearchParams()
       params.set('tab', tab)
       params.set('search', searchInput)
       params.set('category', category)
+      params.set('origin', origin)
       params.set('page', String(page))
       params.set('limit', String(PAGE_LIMIT))
       params.set('sort', sort)
@@ -234,35 +242,72 @@ export function SkillsScreen() {
   const marketplaceSkills = useMemo<Array<SkillSummary>>(
     function resolveMarketplaceSkills() {
       return (hubQuery.data?.results || []).map(function mapHubSkill(skill) {
+        // Gateway returns: name, description, source, identifier, trust_level, repo, path, tags, extra, installed
+        const skillId = skill.id || skill.name
+        const author =
+          skill.author ||
+          (skill.repo ? skill.repo.split('/')[0] : null) ||
+          (skill.extra as Record<string, unknown>)?.author ||
+          skill.source ||
+          'Community'
+        const homepage =
+          skill.homepage ||
+          skill.repo ||
+          (skill.extra as Record<string, unknown>)?.homepage ||
+          null
+        const category =
+          skill.category ||
+          (skill.extra as Record<string, unknown>)?.category ||
+          'Productivity'
+
         return {
-          id: skill.id,
-          slug: skill.id,
-          name: skill.name,
+          id: skillId,
+          slug: skillId,
+          name: skill.name || skillId,
           description: skill.description,
-          author: skill.author,
+          author: String(author),
           triggers: skill.tags,
           tags: skill.tags,
-          homepage: skill.homepage || null,
-          category: skill.category || 'Productivity',
+          homepage: typeof homepage === 'string' ? homepage : null,
+          category: String(category),
           icon:
             skill.source === 'github'
               ? '🐙'
-              : skill.source === 'official'
+              : skill.source === 'official' || skill.trust_level === 'builtin'
                 ? '✅'
-                : '🧩',
-          content: [skill.description, skill.installCommand]
+                : skill.source === 'skills-sh'
+                  ? '📦'
+                  : skill.source === 'lobehub'
+                    ? '🧊'
+                    : skill.source === 'claude-marketplace'
+                      ? '🤖'
+                      : '🧩',
+          content: [
+            skill.description,
+            skill.identifier ? `Identifier: ${skill.identifier}` : '',
+            skill.trust_level ? `Trust: ${skill.trust_level}` : '',
+          ]
             .filter(Boolean)
             .join('\n\n'),
           fileCount: 0,
-          sourcePath: skill.installCommand || skill.homepage || skill.source,
+          sourcePath:
+            skill.identifier ||
+            (typeof homepage === 'string' ? homepage : '') ||
+            skill.source,
           installed: skill.installed,
           enabled: skill.installed,
           featuredGroup: undefined,
           security: {
-            level: 'safe',
+            level:
+              skill.trust_level === 'builtin'
+                ? 'safe'
+                : skill.trust_level === 'trusted'
+                  ? 'safe'
+                  : 'medium',
             flags: [],
             score: 0,
           },
+          origin: 'marketplace' as const,
         }
       })
     },
@@ -302,7 +347,7 @@ export function SkillsScreen() {
           ? '/api/skills/install'
           : action === 'uninstall'
             ? '/api/skills/uninstall'
-            : '/api/skills'
+            : '/api/skills/toggle'
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -310,6 +355,8 @@ export function SkillsScreen() {
         body: JSON.stringify({
           action,
           skillId: payload.skillId,
+          name: payload.skillId,
+          identifier: payload.skillId,
           enabled: payload.enabled,
           source: payload.source,
         }),
@@ -398,6 +445,11 @@ export function SkillsScreen() {
     setPage(1)
   }
 
+  function handleOriginChange(value: string) {
+    setOrigin(value)
+    setPage(1)
+  }
+
   function handleSortChange(value: SkillsSort) {
     setSort(value)
     setPage(1)
@@ -425,68 +477,73 @@ export function SkillsScreen() {
 
         <section className="rounded-2xl border border-primary-200 bg-primary-50/80 p-3 backdrop-blur-xl sm:p-4">
           <Tabs value={tab} onValueChange={handleTabChange}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={searchInput}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder={
+                  tab === 'marketplace'
+                    ? 'Search Skills Hub, GitHub, and local fallback'
+                    : 'Search by name, tags, or description'
+                }
+                className="h-9 w-full min-w-0 flex-1 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none transition-colors focus:border-primary sm:min-w-[220px]"
+              />
+
+              {tab === 'installed' ? (
+                <select
+                  value={category}
+                  onChange={(event) =>
+                    handleCategoryChange(event.target.value)
+                  }
+                  className="h-9 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none"
+                >
+                  {categories.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
+              {tab === 'installed' ? (
+                <select
+                  value={origin}
+                  onChange={(event) => handleOriginChange(event.target.value)}
+                  className="h-9 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none"
+                >
+                  <option value="All">All Origins</option>
+                  <option value="builtin">Built-in</option>
+                  <option value="agent-created">Agent-created</option>
+                  <option value="marketplace">Marketplace</option>
+                </select>
+              ) : null}
+
+              {tab === 'installed' ? (
+                <select
+                  value={sort}
+                  onChange={(event) =>
+                    handleSortChange(
+                      event.target.value === 'category' ? 'category' : 'name',
+                    )
+                  }
+                  className="h-9 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none"
+                >
+                  <option value="name">Name A-Z</option>
+                  <option value="category">Category</option>
+                </select>
+              ) : null}
+
               <TabsList
-                className="w-full rounded-xl border border-primary-200 bg-primary-100/60 p-1 sm:w-auto"
+                className="ml-auto rounded-xl border border-primary-200 bg-primary-100/60 p-1"
                 variant="default"
               >
-                <TabsTab value="installed" className="flex-1 sm:min-w-[132px]">
+                <TabsTab value="installed" className="min-w-[110px]">
                   Installed
                 </TabsTab>
-                <TabsTab
-                  value="marketplace"
-                  className="flex-1 sm:min-w-[168px]"
-                >
+                <TabsTab value="marketplace" className="min-w-[120px]">
                   Marketplace
                 </TabsTab>
-                <TabsTab value="featured" className="flex-1 sm:min-w-[120px]">
-                  Featured
-                </TabsTab>
               </TabsList>
-
-              {tab !== 'marketplace' ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    value={searchInput}
-                    onChange={(event) => handleSearchChange(event.target.value)}
-                    placeholder="Search by name, tags, or description"
-                    className="h-9 w-full min-w-0 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none transition-colors focus:border-primary sm:min-w-[220px]"
-                  />
-
-                  {tab === 'installed' ? (
-                    <select
-                      value={category}
-                      onChange={(event) =>
-                        handleCategoryChange(event.target.value)
-                      }
-                      className="h-9 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none"
-                    >
-                      {categories.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-
-                  {tab === 'installed' ? (
-                    <select
-                      value={sort}
-                      onChange={(event) =>
-                        handleSortChange(
-                          event.target.value === 'category'
-                            ? 'category'
-                            : 'name',
-                        )
-                      }
-                      className="h-9 rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none"
-                    >
-                      <option value="name">Name A-Z</option>
-                      <option value="category">Category</option>
-                    </select>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
 
             {actionError ? (
@@ -513,16 +570,14 @@ export function SkillsScreen() {
             </TabsPanel>
 
             <TabsPanel value="marketplace" className="space-y-3 pt-2">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <input
-                  value={searchInput}
-                  onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder="Search Skills Hub, GitHub, and local fallback"
-                  className="h-10 w-full rounded-lg border border-primary-200 bg-primary-100/60 px-3 text-sm text-ink outline-none transition-colors focus:border-primary"
-                />
-                <div className="text-xs text-primary-500 sm:text-right">
-                  Source: {hubQuery.data?.source || 'hub'}
-                </div>
+              <div className="flex items-center justify-between gap-2">
+                {hubQuery.data?.source ? (
+                  <div className="text-xs text-primary-500">
+                    Source: {hubQuery.data.source}
+                  </div>
+                ) : (
+                  <div />
+                )}
               </div>
 
               {hubQuery.error ? (
@@ -534,16 +589,9 @@ export function SkillsScreen() {
               ) : hubQuery.data &&
                 (hubQuery.data.source === 'installed-fallback' ||
                   hubQuery.data.source === 'error') ? (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Skill marketplace unavailable — showing installed skills
-                  instead. Install{' '}
-                  <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
-                    clawhub
-                  </code>{' '}
-                  CLI to browse the marketplace:{' '}
-                  <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
-                    pip install skillhub
-                  </code>
+                <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+                  Skills Hub search unavailable — showing installed skills
+                  instead. Ensure the Hermes Agent gateway is running.
                 </div>
               ) : null}
 
@@ -578,23 +626,10 @@ export function SkillsScreen() {
                 }
               />
             </TabsPanel>
-
-            <TabsPanel value="featured" className="pt-2">
-              <FeaturedGrid
-                skills={skills}
-                loading={skillsQuery.isPending}
-                actionSkillId={actionSkillId}
-                onOpenDetails={setSelectedSkill}
-                onInstall={(skillId) => runSkillAction('install', { skillId })}
-                onUninstall={(skillId) =>
-                  runSkillAction('uninstall', { skillId })
-                }
-              />
-            </TabsPanel>
           </Tabs>
         </section>
 
-        {tab !== 'featured' && tab !== 'marketplace' ? (
+        {tab !== 'marketplace' ? (
           <footer className="flex items-center justify-between rounded-xl border border-primary-200 bg-primary-50/80 px-3 py-2.5 text-sm text-primary-500 tabular-nums">
             <span>
               {(skillsQuery.data?.total || 0).toLocaleString()} total skills
@@ -703,12 +738,33 @@ export function SkillsScreen() {
               </ScrollAreaRoot>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-primary-200 px-5 py-3">
-                <p className="text-sm text-primary-500 text-pretty">
-                  Source:{' '}
-                  <code className="inline-code">
-                    {selectedSkill.sourcePath}
-                  </code>
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedSkill.origin ? (
+                    <span
+                      className={cn(
+                        'rounded-md border px-2 py-0.5 text-xs tabular-nums',
+                        selectedSkill.origin === 'builtin' &&
+                          'border-primary-200 bg-primary-100/60 text-primary-500',
+                        selectedSkill.origin === 'agent-created' &&
+                          'border-amber-300/70 bg-amber-100/60 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-200',
+                        selectedSkill.origin === 'marketplace' &&
+                          'border-emerald-300/70 bg-emerald-100/60 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-200',
+                      )}
+                    >
+                      {selectedSkill.origin === 'builtin'
+                        ? 'Built-in'
+                        : selectedSkill.origin === 'agent-created'
+                          ? 'Agent-created'
+                          : 'Marketplace'}
+                    </span>
+                  ) : null}
+                  <p className="text-sm text-primary-500 text-pretty">
+                    Source:{' '}
+                    <code className="inline-code">
+                      {selectedSkill.sourcePath}
+                    </code>
+                  </p>
+                </div>
                 <div className="flex items-center gap-2">
                   {selectedSkill.installed ? (
                     <Button
@@ -825,7 +881,10 @@ function SecurityBadge({
           {config.label}
         </button>
         {expanded && (
-          <div className="absolute left-0 bottom-[calc(100%+6px)] z-50 w-72 rounded-xl border border-primary-200 bg-surface p-0 shadow-xl overflow-hidden">
+          <div
+            className="absolute left-0 bottom-[calc(100%+6px)] z-50 w-72 overflow-hidden rounded-xl border border-primary-200 p-0 shadow-xl"
+            style={{ backgroundColor: 'var(--color-primary-50)' }}
+          >
             <SecurityScanCard security={security} />
           </div>
         )}
@@ -958,28 +1017,53 @@ function SkillsGrid({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18 }}
-              className="flex min-h-[220px] flex-col rounded-2xl border border-primary-200 bg-primary-50/85 p-4 shadow-sm backdrop-blur-sm"
+              className="relative z-0 flex min-h-[220px] flex-col rounded-2xl border border-primary-200 bg-primary-50/85 p-4 shadow-sm backdrop-blur-sm hover:z-20 focus-within:z-20"
             >
               <div className="mb-2 flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-xl leading-none">{skill.icon}</p>
-                  <h3 className="line-clamp-1 text-base font-medium text-ink text-balance">
-                    {skill.name}
-                  </h3>
-                  <p className="line-clamp-1 text-xs text-primary-500">
-                    by {skill.author}
-                  </p>
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl leading-none">{skill.icon}</span>
+                    <h3 className="line-clamp-1 min-w-0 text-base font-medium text-ink text-balance">
+                      {skill.name}
+                    </h3>
+                  </div>
+                  {skill.author ? (
+                    <p className="line-clamp-1 text-xs text-primary-500">
+                      by {skill.author}
+                    </p>
+                  ) : null}
                 </div>
-                <span
-                  className={cn(
-                    'rounded-md border px-2 py-0.5 text-xs tabular-nums',
-                    skill.installed
-                      ? 'border-primary/40 bg-primary/15 text-primary'
-                      : 'border-primary-200 bg-primary-100/60 text-primary-500',
-                  )}
-                >
-                  {skill.installed ? 'Installed' : 'Available'}
-                </span>
+                <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5">
+                  {skill.origin ? (
+                    <span
+                      className={cn(
+                        'rounded-md border px-2 py-0.5 text-xs tabular-nums',
+                        skill.origin === 'builtin' &&
+                          'border-primary-200 bg-primary-100/60 text-primary-500',
+                        skill.origin === 'agent-created' &&
+                          'border-amber-300/70 bg-amber-100/60 text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/30 dark:text-amber-200',
+                        skill.origin === 'marketplace' &&
+                          'border-emerald-300/70 bg-emerald-100/60 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-200',
+                      )}
+                    >
+                      {skill.origin === 'builtin'
+                        ? 'Built-in'
+                        : skill.origin === 'agent-created'
+                          ? 'Agent-created'
+                          : 'Marketplace'}
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      'rounded-md border px-2 py-0.5 text-xs tabular-nums',
+                      skill.installed
+                        ? 'border-primary/40 bg-primary/15 text-primary'
+                        : 'border-primary-200 bg-primary-100/60 text-primary-500',
+                    )}
+                  >
+                    {skill.installed ? 'Installed' : 'Available'}
+                  </span>
+                </div>
               </div>
 
               <p className="line-clamp-3 min-h-[58px] text-sm text-primary-500 text-pretty">

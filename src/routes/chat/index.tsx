@@ -1,13 +1,14 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/chat/')({
+  ssr: false,
   beforeLoad: () => {
     // Try to restore last active session from localStorage
     let lastSession = 'new'
     try {
       const stored =
         typeof window !== 'undefined'
-          ? localStorage.getItem('hermes-last-session')
+          ? localStorage.getItem('claude-last-session')
           : null
       if (stored && stored !== 'main') lastSession = stored
     } catch {}

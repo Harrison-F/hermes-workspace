@@ -16,8 +16,8 @@ export const tourSteps: Array<Step> = [
         }}
       >
         <img
-          src="/hermes-avatar.webp"
-          alt="Hermes"
+          src="/claude-avatar.webp"
+          alt="Hermes Agent"
           style={{ width: 48, height: 48, borderRadius: 12 }}
         />
         <p style={{ textAlign: 'center', margin: 0 }}>

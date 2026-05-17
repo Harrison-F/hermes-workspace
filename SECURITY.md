@@ -13,7 +13,7 @@ We will acknowledge your report within 48 hours and aim to provide a fix within 
 ## Scope
 
 - Hermes Workspace web application code
-- API routes and Hermes communication
+- API routes and Claude communication
 - Authentication and session management
 - Client-side data handling and rendering
 - Exec approval and human-in-the-loop controls
@@ -45,12 +45,12 @@ We will acknowledge your report within 48 hours and aim to provide a fix within 
 - Path traversal prevention on all file and memory routes (`ensureWorkspacePath()`)
 - `.md`-only restriction on memory write routes
 - No API keys or secrets ever exposed to client-side code
-- Hermes tokens are server-side only
+- Claude tokens are server-side only
 - Diagnostic output scrubbed of sensitive data
 
 **Agent Safety**
 
-- Exec approval workflow — sensitive Hermes exec commands require explicit human approval via in-UI modal
+- Exec approval workflow — sensitive Claude exec commands require explicit human approval via in-UI modal
 - Skills security scanning — every skill from the marketplace is scanned for suspicious patterns before install
 
 **Configuration**

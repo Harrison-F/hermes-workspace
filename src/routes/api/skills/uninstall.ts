@@ -1,9 +1,15 @@
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
+import {
+  BEARER_TOKEN,
+  CLAUDE_API,
+  ensureGatewayProbed,
+} from '../../../server/gateway-capabilities'
+
+function authHeaders(): Record<string, string> {
+  return BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}
+}
 
 export const Route = createFileRoute('/api/skills/uninstall')({
   server: {
@@ -13,30 +19,42 @@ export const Route = createFileRoute('/api/skills/uninstall')({
           return json({ ok: false, error: 'Unauthorized' }, { status: 401 })
         }
         try {
-          const body = (await request.json()) as { skillId?: string }
-          const skillId = (body.skillId || '').trim()
-          if (!skillId)
+          const body = (await request.json()) as {
+            skillId?: string
+            name?: string
+          }
+          const name = (body.name || body.skillId || '').trim()
+          if (!name) {
             return json(
-              { ok: false, error: 'skillId required' },
+              { ok: false, error: 'name or skillId required' },
               { status: 400 },
             )
-          const skillPath = path.join(
-            os.homedir(),
-            '.hermes',
-            'skills',
-            skillId,
-          )
-          if (!fs.existsSync(skillPath)) {
+          }
+
+          const capabilities = await ensureGatewayProbed()
+          if (capabilities.dashboard.available) {
             return json(
               {
                 ok: false,
-                error: 'Installed skill not found under ~/.hermes/skills',
+                error:
+                  'Skill uninstall is only available on the legacy enhanced fork right now.',
               },
-              { status: 404 },
+              { status: 501 },
             )
           }
-          fs.rmSync(skillPath, { recursive: true, force: false })
-          return json({ ok: true, uninstalled: true, skillId })
+
+          const response = await fetch(`${CLAUDE_API}/api/skills/uninstall`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...authHeaders(),
+            },
+            body: JSON.stringify({ name }),
+            signal: AbortSignal.timeout(30_000),
+          })
+
+          const result = await response.json()
+          return json(result, { status: response.status })
         } catch (error) {
           return json(
             {

@@ -1,12 +1,16 @@
 export type ThemeId =
-  | 'hermes-official'
-  | 'hermes-official-light'
-  | 'hermes-classic'
-  | 'hermes-classic-light'
-  | 'hermes-slate'
-  | 'hermes-slate-light'
-  | 'hermes-mono'
-  | 'hermes-mono-light'
+  | 'claude-nous'
+  | 'claude-nous-light'
+  | 'matrix'
+  | 'matrix-light'
+  | 'claude-official'
+  | 'claude-official-light'
+  | 'claude-classic'
+  | 'claude-classic-light'
+  | 'claude-slate'
+  | 'claude-slate-light'
+  | 'scifi'
+  | 'scifi-light'
 
 export const THEMES: Array<{
   id: ThemeId
@@ -15,82 +19,112 @@ export const THEMES: Array<{
   icon: string
 }> = [
   {
-    id: 'hermes-official',
-    label: 'Hermes Official',
+    id: 'claude-nous',
+    label: 'Nous',
+    description: 'Deep teal background, cream accent — matches Nous Research chrome',
+    icon: '◱',
+  },
+  {
+    id: 'claude-nous-light',
+    label: 'Nous Light',
+    description: 'Cold paper white with restrained cobalt framing',
+    icon: '◲',
+  },
+  {
+    id: 'matrix',
+    label: 'Matrix',
+    description: 'Black glass terminal field with phosphor green signal glow',
+    icon: '▣',
+  },
+  {
+    id: 'matrix-light',
+    label: 'Matrix Light',
+    description: 'White terminal paper with green signal accents',
+    icon: '▣',
+  },
+  {
+    id: 'claude-official',
+    label: 'Hermes',
     description: 'Navy and indigo flagship theme',
     icon: '⚕',
   },
   {
-    id: 'hermes-official-light',
-    label: 'Hermes Official Light',
-    description: 'Soft indigo light palette',
+    id: 'claude-official-light',
+    label: 'Hermes Light',
+    description: 'Editorial paper white with muted cobalt accents',
     icon: '⚕',
   },
   {
-    id: 'hermes-classic',
-    label: 'Hermes Classic',
+    id: 'claude-classic',
+    label: 'Bronze',
     description: 'Bronze accents on dark charcoal',
     icon: '🔶',
   },
   {
-    id: 'hermes-classic-light',
-    label: 'Classic Light',
+    id: 'claude-classic-light',
+    label: 'Bronze Light',
     description: 'Warm parchment with bronze accents',
     icon: '🔶',
   },
   {
-    id: 'hermes-slate',
+    id: 'claude-slate',
     label: 'Slate',
     description: 'Cool blue developer theme',
     icon: '🔷',
   },
   {
-    id: 'hermes-slate-light',
+    id: 'claude-slate-light',
     label: 'Slate Light',
     description: 'GitHub-light palette with blue accents',
     icon: '🔷',
   },
   {
-    id: 'hermes-mono',
-    label: 'Mono',
-    description: 'Clean monochrome grayscale',
-    icon: '◐',
+    id: 'scifi',
+    label: 'SciFi',
+    description: 'Cyberpunk HUD — deep navy, cyan neon, orange highlights',
+    icon: '🌌',
   },
   {
-    id: 'hermes-mono-light',
-    label: 'Mono Light',
-    description: 'Bright monochrome grayscale',
-    icon: '◐',
+    id: 'scifi-light',
+    label: 'SciFi Light',
+    description: 'Cold steel and teal — cyberpunk interface in daylight',
+    icon: '🌌',
   },
 ]
 
-const STORAGE_KEY = 'hermes-theme'
-const DEFAULT_THEME: ThemeId = 'hermes-official'
+const STORAGE_KEY = 'claude-theme'
+const DEFAULT_THEME: ThemeId = 'claude-nous'
 const THEME_SET = new Set<ThemeId>(THEMES.map((theme) => theme.id))
 const LIGHT_THEME_MAP: Record<
   Exclude<ThemeId, `${string}-light`>,
   Extract<ThemeId, `${string}-light`>
 > = {
-  'hermes-official': 'hermes-official-light',
-  'hermes-classic': 'hermes-classic-light',
-  'hermes-slate': 'hermes-slate-light',
-  'hermes-mono': 'hermes-mono-light',
+  'claude-nous': 'claude-nous-light',
+  matrix: 'matrix-light',
+  'claude-official': 'claude-official-light',
+  'claude-classic': 'claude-classic-light',
+  'claude-slate': 'claude-slate-light',
+  'scifi': 'scifi-light',
 }
 const DARK_THEME_MAP: Record<
   Extract<ThemeId, `${string}-light`>,
   Exclude<ThemeId, `${string}-light`>
 > = {
-  'hermes-official-light': 'hermes-official',
-  'hermes-classic-light': 'hermes-classic',
-  'hermes-slate-light': 'hermes-slate',
-  'hermes-mono-light': 'hermes-mono',
+  'claude-nous-light': 'claude-nous',
+  'matrix-light': 'matrix',
+  'claude-official-light': 'claude-official',
+  'claude-classic-light': 'claude-classic',
+  'claude-slate-light': 'claude-slate',
+  'scifi-light': 'scifi',
 }
 
 const LIGHT_THEMES = new Set<ThemeId>([
-  'hermes-official-light',
-  'hermes-classic-light',
-  'hermes-slate-light',
-  'hermes-mono-light',
+  'claude-nous-light',
+  'matrix-light',
+  'claude-official-light',
+  'claude-classic-light',
+  'claude-slate-light',
+  'scifi-light',
 ])
 
 export function isValidTheme(

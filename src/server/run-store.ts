@@ -1,6 +1,7 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
+import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+
+import { getHermesRoot } from './claude-paths'
 
 export type PersistedRunToolCall = {
   id: string
@@ -33,7 +34,8 @@ export type PersistedRunState = {
   errorMessage?: string
 }
 
-const RUNS_ROOT = path.join(homedir(), '.hermes', 'webui-mvp', 'runs')
+const RUNS_ROOT = path.join(getHermesRoot(), 'webui-mvp', 'runs')
+const runUpdateQueues = new Map<string, Promise<void>>()
 
 function encodeSessionKey(sessionKey: string): string {
   return encodeURIComponent(sessionKey || 'main')
@@ -54,11 +56,34 @@ async function ensureDir(dir: string): Promise<void> {
 async function writeRun(run: PersistedRunState): Promise<void> {
   const dir = sessionDir(run.sessionKey)
   await ensureDir(dir)
-  await writeFile(
-    runPath(run.sessionKey, run.runId),
-    `${JSON.stringify(run, null, 2)}\n`,
-    'utf8',
+  const targetPath = runPath(run.sessionKey, run.runId)
+  const tempPath = `${targetPath}.${process.pid}.${Date.now()}.${Math.random()
+    .toString(36)
+    .slice(2)}.tmp`
+  await writeFile(tempPath, `${JSON.stringify(run, null, 2)}\n`, 'utf8')
+  await rename(tempPath, targetPath)
+}
+
+async function enqueueRunUpdate<T>(
+  sessionKey: string,
+  runId: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  const key = `${encodeSessionKey(sessionKey)}:${runId}`
+  const previous = runUpdateQueues.get(key) ?? Promise.resolve()
+  const current = previous.catch(() => undefined).then(work)
+  const marker = current.then(
+    () => undefined,
+    () => undefined,
   )
+  runUpdateQueues.set(key, marker)
+  try {
+    return await current
+  } finally {
+    if (runUpdateQueues.get(key) === marker) {
+      runUpdateQueues.delete(key)
+    }
+  }
 }
 
 export async function createPersistedRun(input: {
@@ -101,12 +126,14 @@ export async function updatePersistedRun(
   runId: string,
   updater: (run: PersistedRunState) => PersistedRunState,
 ): Promise<PersistedRunState | null> {
-  const current = await getPersistedRun(sessionKey, runId)
-  if (!current) return null
-  const next = updater(current)
-  next.updatedAt = Date.now()
-  await writeRun(next)
-  return next
+  return enqueueRunUpdate(sessionKey, runId, async () => {
+    const current = await getPersistedRun(sessionKey, runId)
+    if (!current) return null
+    const next = updater(current)
+    next.updatedAt = Date.now()
+    await writeRun(next)
+    return next
+  })
 }
 
 export async function appendRunText(

@@ -1,6 +1,6 @@
 # Hermes Workspace — Comprehensive Features Inventory
 
-> **Version:** 1.0.0 | **Stack:** React 19 + TanStack Start/Router + Vite 7 + Tailwind CSS 4 + Zustand + xterm.js + Monaco Editor  
+> **Version:** 2.0.0 | **Stack:** React 19 + TanStack Start/Router + Vite 7 + Tailwind CSS 4 + Zustand + xterm.js + Monaco Editor  
 > **Description:** Desktop workspace for Hermes Agent — chat, orchestration, and multi-agent coding pipelines
 
 ---
@@ -27,7 +27,7 @@
 - **Real-time SSE streaming** with tool call rendering
 - **Multi-session management** — create, rename, delete, fork sessions
 - **Dual chat backend modes:**
-  - **Enhanced Hermes** — full session API with persistent history via Hermes gateway
+  - **Enhanced Claude** — full session API with persistent history via Hermes Agent gateway
   - **Portable** — OpenAI-compatible `/v1/chat/completions` (works with Ollama, LM Studio, vLLM, etc.)
 - **Chat sidebar** — session list with search, pin, rename, delete dialogs
 - **Message rendering:**
@@ -97,7 +97,7 @@
 
 ### 1.6 Skills Browser Screen (`/skills`)
 
-- **Browse 2,000+ skills** from the Hermes skill registry
+- **Browse 2,000+ skills** from the Claude skill registry
 - **Tabbed view:** Installed, Marketplace, Featured
 - **Skill categories:** All, Web & Frontend, Coding Agents, Git & GitHub, DevOps & Cloud, Browser & Automation, Image & Video, Search & Research, AI & LLMs, Productivity, Marketing & Sales, Communication, Data & Analytics, Finance & Crypto
 - **Search and filter** — by name, description, author, tags, triggers
@@ -129,7 +129,7 @@
 
 | Endpoint             | Method | Description                                                                      |
 | -------------------- | ------ | -------------------------------------------------------------------------------- |
-| `/api/send-stream`   | POST   | Main streaming chat endpoint — routes to enhanced Hermes or portable OpenAI mode |
+| `/api/send-stream`   | POST   | Main streaming chat endpoint — routes to enhanced Claude or portable OpenAI mode |
 | `/api/send`          | POST   | Non-streaming chat send                                                          |
 | `/api/sessions/send` | POST   | Session-specific send                                                            |
 | `/api/chat-events`   | GET    | SSE chat event stream                                                            |
@@ -162,7 +162,7 @@
 
 | Endpoint             | Method | Description                      |
 | -------------------- | ------ | -------------------------------- |
-| `/api/memory`        | GET    | Get memory from Hermes gateway   |
+| `/api/memory`        | GET    | Get memory from Hermes Agent gateway   |
 | `/api/memory/list`   | GET    | List local memory markdown files |
 | `/api/memory/read`   | GET    | Read specific memory file        |
 | `/api/memory/search` | GET    | Search across memory files       |
@@ -180,17 +180,17 @@
 | Endpoint             | Method | Description                                  |
 | -------------------- | ------ | -------------------------------------------- |
 | `/api/models`        | GET    | List available models (gateway + auth store) |
-| `/api/hermes-config` | GET    | Read Hermes config.yaml and .env             |
-| `/api/hermes-config` | PATCH  | Update config.yaml and .env                  |
+| `/api/claude-config` | GET    | Read Hermes config.yaml and .env             |
+| `/api/claude-config` | PATCH  | Update config.yaml and .env                  |
 | `/api/context-usage` | GET    | Token/context usage for a session            |
 
 ### 2.7 Jobs
 
 | Endpoint                  | Method                | Description                                    |
 | ------------------------- | --------------------- | ---------------------------------------------- |
-| `/api/hermes-jobs`        | GET                   | List all jobs                                  |
-| `/api/hermes-jobs`        | POST                  | Create new job                                 |
-| `/api/hermes-jobs/$jobId` | GET/POST/PATCH/DELETE | Job CRUD and actions (pause/resume/run/output) |
+| `/api/claude-jobs`        | GET                   | List all jobs                                  |
+| `/api/claude-jobs`        | POST                  | Create new job                                 |
+| `/api/claude-jobs/$jobId` | GET/POST/PATCH/DELETE | Job CRUD and actions (pause/resume/run/output) |
 
 ### 2.8 Terminal
 
@@ -210,8 +210,8 @@
 | `/api/ping`              | GET    | Server ping/health                            |
 | `/api/connection-status` | GET    | Gateway connection status with capabilities   |
 | `/api/gateway-status`    | GET    | Detailed gateway capabilities                 |
-| `/api/start-agent`       | POST   | Auto-start Hermes agent process               |
-| `/api/start-hermes`      | POST   | Start Hermes gateway                          |
+| `/api/start-agent`       | POST   | Auto-start Claude agent process               |
+| `/api/start-claude`      | POST   | Start Hermes Agent gateway                          |
 | `/api/workspace`         | GET    | Workspace auto-detection                      |
 
 ### 2.10 OAuth
@@ -279,8 +279,8 @@
 - **connection-overlay** — full-screen connection status
 - **connection-startup-screen** — initial loading/connection screen
 - **backend-unavailable-state** — offline fallback UI
-- **hermes-health-banner** — gateway health indicator
-- **hermes-reconnect-banner** — reconnection prompt
+- **claude-health-banner** — gateway health indicator
+- **claude-reconnect-banner** — reconnection prompt
 - **error-boundary** — React error boundary
 - **error-toast** — error notification
 - **loading-indicator** — generic loading state
@@ -306,7 +306,7 @@
 - **usage-meter/** — usage-meter, usage-meter-compact, usage-details-modal, context-alert-modal
 - **search/** — search-modal, search-input, search-results, search-result-item, quick-actions
 - **settings-dialog/** — settings-dialog
-- **onboarding/** — hermes-onboarding, onboarding-wizard, onboarding-tour, tour-steps, setup-step-content, provider-select-step
+- **onboarding/** — claude-onboarding, onboarding-wizard, onboarding-tour, tour-steps, setup-step-content, provider-select-step
 - **agent-chat/** — AgentChatModal, AgentChatHeader, AgentChatInput, AgentChatMessages
 - **avatars/** — user-avatar, assistant-avatar
 - **auth/** — login-screen
@@ -326,8 +326,8 @@
 
 | Setting                   | Type                            | Default  | Description                 |
 | ------------------------- | ------------------------------- | -------- | --------------------------- |
-| `hermesUrl`               | string                          | `''`     | Hermes API URL              |
-| `hermesToken`             | string                          | `''`     | Bearer token                |
+| `claudeUrl`               | string                          | `''`     | Hermes Agent API URL              |
+| `claudeToken`             | string                          | `''`     | Bearer token                |
 | `theme`                   | `system\|light\|dark`           | `system` | Color mode                  |
 | `accentColor`             | `orange\|purple\|blue\|green`   | `blue`   | Accent color                |
 | `editorFontSize`          | number                          | `13`     | Monaco editor font size     |
@@ -346,9 +346,9 @@
 
 | Theme                 | Description                     | Mode  |
 | --------------------- | ------------------------------- | ----- |
-| Hermes Official       | Navy and indigo flagship        | Dark  |
-| Hermes Official Light | Soft indigo light palette       | Light |
-| Hermes Classic        | Bronze accents on dark charcoal | Dark  |
+| Claude Official       | Navy and indigo flagship        | Dark  |
+| Claude Official Light | Soft indigo light palette       | Light |
+| Claude Classic        | Bronze accents on dark charcoal | Dark  |
 | Classic Light         | Warm parchment with bronze      | Light |
 | Slate                 | Cool blue developer theme       | Dark  |
 | Slate Light           | GitHub-light with blue accents  | Light |
@@ -375,16 +375,20 @@
 | Variable               | Description                                        |
 | ---------------------- | -------------------------------------------------- |
 | `HERMES_API_URL`       | Backend API URL (default: `http://127.0.0.1:8642`) |
-| `HERMES_PASSWORD`      | Optional password protection for web UI            |
-| `HERMES_WORKSPACE_DIR` | Workspace root directory (default: `~/.hermes`)    |
+| `CLAUDE_PASSWORD`      | Optional password protection for web UI            |
+| `CLAUDE_WORKSPACE_DIR` | Workspace root directory (default: `~/.hermes`)    |
 | `HERMES_AGENT_PATH`    | Path to hermes-agent directory                     |
-| `HERMES_DEFAULT_MODEL` | Default model override                             |
-| `HERMES_ALLOWED_HOSTS` | Allowed hosts (default: `.ts.net`)                 |
-| `ANTHROPIC_API_KEY`    | Anthropic API key passthrough                      |
+| `CLAUDE_DEFAULT_MODEL` | Default model override                             |
+| `CLAUDE_ALLOWED_HOSTS` | Allowed hosts (default: `.ts.net`)                 |
+| `ANTHROPIC_API_KEY`    | Anthropic API key passthrough (optional)           |
+| `OPENAI_API_KEY`       | OpenAI API key passthrough (optional)              |
+| `OPENROUTER_API_KEY`   | OpenRouter API key passthrough (optional)          |
+| `GOOGLE_API_KEY`       | Google Gemini API key passthrough (optional)       |
+| `HERMES_API_TOKEN`     | Auth token for gateway API_SERVER_KEY              |
 | `BEARER_TOKEN`         | Bearer token for backend auth                      |
 | `PORT`                 | Server port (default: 3002 dev, 3000 prod)         |
 
-### 4.6 Hermes Config Management
+### 4.6 Claude Config Management
 
 - **Read/write `~/.hermes/config.yaml`** — YAML config via web UI
 - **Read/write `~/.hermes/.env`** — environment variables
@@ -401,7 +405,7 @@
   - **Core:** health, chatCompletions, models, streaming
   - **Enhanced:** sessions, skills, memory, config, jobs
 - **Three chat modes:**
-  - `enhanced-hermes` — full Hermes session API
+  - `enhanced-claude` — full Claude session API
   - `portable` — OpenAI-compatible /v1/chat/completions
   - `disconnected` — no usable backend
 - **Auto-detection** with port fallback (8642 → 8643)
@@ -472,7 +476,7 @@
 | Ollama     | Local (no auth)    | Local models                        |
 | Custom     | API Key            | Any OpenAI-compatible server        |
 
-### 6.2 Known Gateway Providers (Hermes Config)
+### 6.2 Known Gateway Providers (Claude Config)
 
 - Nous Portal (OAuth device code flow)
 - OpenAI Codex (OAuth)
@@ -588,7 +592,7 @@ Web Audio API synthesized sounds (no audio files):
 
 ### 8.1 Authentication
 
-- Optional password protection via `HERMES_PASSWORD` env var
+- Optional password protection via `CLAUDE_PASSWORD` env var
 - Timing-safe password comparison
 - Cryptographic session tokens (32 bytes hex)
 - HTTP-only, SameSite=Strict cookies (30-day expiry)
@@ -687,7 +691,7 @@ pnpm stop:stable   # Stop via scripts/stop-stable.sh
 
 ### 10.5 Auto-Start Features
 
-- Hermes agent auto-start from sibling directory
+- Claude agent auto-start from sibling directory
 - Workspace daemon auto-start with crash recovery
 - Port fallback detection (8642 → 8643)
 

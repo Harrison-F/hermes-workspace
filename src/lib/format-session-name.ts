@@ -1,5 +1,5 @@
 /**
- * Convert raw Hermes session keys to human-readable names.
+ * Convert raw Claude session keys to human-readable names.
  *
  * Examples:
  *   "agent:main:main" → "Main"
@@ -14,7 +14,7 @@ const PLATFORM_NAMES: Record<string, string> = {
   whatsapp: 'WhatsApp',
   signal: 'Signal',
   imessage: 'iMessage',
-  webchat: 'Hermes',
+  webchat: 'Claude',
   'hermes-workspace': 'Hermes',
   slack: 'Slack',
   irc: 'IRC',

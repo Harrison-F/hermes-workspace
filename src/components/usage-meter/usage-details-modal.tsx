@@ -52,7 +52,7 @@ type ProviderUsage = {
   status: 'ok' | 'missing_credentials' | 'auth_expired' | 'error'
   message?: string
   plan?: string
-  lines: Array<UsageLine>
+  lines: UsageLine[]
   updatedAt: number
 }
 
@@ -321,7 +321,7 @@ export function UsageDetailsModal({
         <div>
           <DialogTitle>Usage Overview</DialogTitle>
           <DialogDescription>
-            Live usage from your Hermes session and connected providers.
+            Live usage from your gateway session and connected providers.
           </DialogDescription>
         </div>
         <DialogClose className="text-primary-700">Close</DialogClose>
@@ -335,7 +335,7 @@ export function UsageDetailsModal({
             onClick={() => setActiveTab(tab)}
             className={`rounded-full px-3 py-1 font-medium transition ${
               activeTab === tab
-                ? 'bg-white text-primary-900 shadow-sm'
+                ? 'bg-primary-100 text-primary-800 shadow-sm'
                 : 'text-primary-600 hover:text-primary-800'
             }`}
           >
@@ -354,7 +354,7 @@ export function UsageDetailsModal({
             ) : null}
 
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-primary-200 bg-white/60 p-3">
+              <div className="rounded-2xl border border-primary-200 bg-primary-50/60 p-3">
                 <div className="text-xs uppercase tracking-wide text-primary-500">
                   Input Tokens
                 </div>
@@ -362,7 +362,7 @@ export function UsageDetailsModal({
                   {formatTokens(usage.inputTokens)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-primary-200 bg-white/60 p-3">
+              <div className="rounded-2xl border border-primary-200 bg-primary-50/60 p-3">
                 <div className="text-xs uppercase tracking-wide text-primary-500">
                   Output Tokens
                 </div>
@@ -370,7 +370,7 @@ export function UsageDetailsModal({
                   {formatTokens(usage.outputTokens)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-primary-200 bg-white/60 p-3">
+              <div className="rounded-2xl border border-primary-200 bg-primary-50/60 p-3">
                 <div className="text-xs uppercase tracking-wide text-primary-500">
                   Daily Cost
                 </div>
@@ -380,21 +380,20 @@ export function UsageDetailsModal({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-primary-200 bg-white/70 p-4">
+            <div className="rounded-2xl border border-primary-200 bg-primary-50/70 p-4">
               <div className="mb-3 text-sm font-semibold text-primary-900">
                 Cost per model
               </div>
               <div className="grid gap-2">
                 {usage.models.length === 0 ? (
                   <div className="text-sm text-primary-500">
-                    No model usage reported yet. Send a message to start
-                    tracking usage here.
+                    No model usage reported yet. Send a message to start tracking usage here.
                   </div>
                 ) : (
                   usage.models.map((model) => (
                     <div
                       key={model.model}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary-100 bg-white px-3 py-2 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary-100 bg-primary-50 px-3 py-2 text-sm"
                     >
                       <div className="font-medium text-primary-800">
                         {formatModelName(model.model)}
@@ -412,21 +411,20 @@ export function UsageDetailsModal({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-primary-200 bg-white/70 p-4">
+            <div className="rounded-2xl border border-primary-200 bg-primary-50/70 p-4">
               <div className="mb-3 text-sm font-semibold text-primary-900">
                 Session history
               </div>
               <div className="grid gap-2">
                 {usage.sessions.length === 0 ? (
                   <div className="text-sm text-primary-500">
-                    No sessions reported yet. Start a chat to see session
-                    history here.
+                    No sessions reported yet. Start a chat to see session history here.
                   </div>
                 ) : (
                   usage.sessions.map((session) => (
                     <div
                       key={session.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary-100 bg-white px-3 py-2 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary-100 bg-primary-50 px-3 py-2 text-sm"
                     >
                       <div>
                         <div className="font-medium text-primary-800">
@@ -487,14 +485,12 @@ export function UsageDetailsModal({
 
             <div className="grid gap-3">
               {providerUsage.length === 0 ? (
-                <div className="rounded-2xl border border-primary-200 bg-white/70 p-6 text-center">
+                <div className="rounded-2xl border border-primary-200 bg-primary-50/70 p-6 text-center">
                   <div className="text-sm font-medium text-primary-700">
-                    No providers connected. Add a provider in Settings to start
-                    chatting.
+                    No providers connected. Add a provider in Settings to start chatting.
                   </div>
                   <div className="mt-1 text-xs text-primary-500">
-                    Open Settings -{'>'} Providers to connect Claude CLI or add
-                    an API key.
+                    Open Settings -{'>'} Providers to connect Claude CLI or add an API key.
                   </div>
                 </div>
               ) : (
@@ -507,7 +503,7 @@ export function UsageDetailsModal({
                       className={`rounded-2xl border p-4 ${
                         isDefault
                           ? 'border-primary-300 bg-primary-50/50'
-                          : 'border-primary-200 bg-white/70'
+                          : 'border-primary-200 bg-primary-50/70'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -565,7 +561,7 @@ export function UsageDetailsModal({
                                 onClick={() =>
                                   handleSetDefault(provider.provider)
                                 }
-                                className="rounded-lg border border-primary-200 bg-white px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
+                                className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-100"
                               >
                                 Set as Default
                               </button>

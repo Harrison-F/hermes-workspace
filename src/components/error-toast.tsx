@@ -24,7 +24,8 @@ function classifyError(raw: string): string {
     lower.includes('401') ||
     lower.includes('403') ||
     lower.includes('unauthorized') ||
-    lower.includes('auth')
+    lower.includes('invalid api key') ||
+    lower.includes('api key')
   ) {
     return 'Authentication error — check your API key in Settings'
   }
@@ -42,6 +43,9 @@ function classifyError(raw: string): string {
     lower.includes('connection')
   ) {
     return 'Connection lost — retrying…'
+  }
+  if (lower.includes('tool_use') && lower.includes('tool_result')) {
+    return 'Tool call context error — conversation history got out of sync. Start a new session to continue.'
   }
   // Return original message if no pattern matched
   return raw
