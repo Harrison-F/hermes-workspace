@@ -132,18 +132,15 @@ export type StreamChunkType =
   | {
       type: 'tool'
       name: string
-      label: string
-      toolCallId?: string
-      // Lifecycle phase from the upstream gateway. Vanilla Hermes Agent
-      // emits 'running' at tool start and 'completed' at tool finish via
-      // the `hermes.tool.progress` SSE event (#16588). Older builds that
-      // sent `claude.tool.progress` did not carry status — we treat
-      // missing/unknown values as a one-shot 'running' so existing flows
-      // keep working.
+      label?: string
+      phase?: string
       status?: 'running' | 'completed'
+      toolCallId?: string
+      preview?: string
+      result?: string
     }
 
-function readString(value: unknown): string {
+function readStreamString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
@@ -153,39 +150,43 @@ function readRecord(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-function parseClaudeToolProgressChunk(payload: string): StreamChunkType | null {
+function parseToolProgressChunk(payload: string): StreamChunkType | null {
   try {
     const parsed = JSON.parse(payload) as unknown
     const record = readRecord(parsed)
     if (!record) return null
     const name =
-      readString(record.tool) || readString(record.name) || 'tool'
-    const emoji = readString(record.emoji)
-    const labelText = readString(record.label)
+      readStreamString(record.tool) || readStreamString(record.name) || 'tool'
+    const emoji = readStreamString(record.emoji)
+    const labelText = readStreamString(record.label)
     const label = [emoji, labelText].filter(Boolean).join(' ').trim()
     const toolCallId =
-      readString(record.toolCallId) ||
-      readString(record.tool_call_id) ||
+      readStreamString(record.toolCallId) ||
+      readStreamString(record.tool_call_id) ||
       undefined
-    const statusRaw = readString(record.status).toLowerCase()
+    const statusRaw = readStreamString(record.status).toLowerCase()
     const status =
       statusRaw === 'running'
         ? ('running' as const)
         : statusRaw === 'completed' || statusRaw === 'complete'
           ? ('completed' as const)
           : undefined
-    // Accept the chunk as long as we have either a label OR a stable
-    // tool_call_id + status. Vanilla 'completed' events ship without
-    // emoji/label and would otherwise be dropped, leaving cards stuck
-    // in 'running'.
-    if (!label && !toolCallId) return null
-    return {
+    const phase = status === 'completed' ? 'complete' : statusRaw || 'calling'
+    const preview = label || readStreamString(record.preview) || undefined
+    const result = readStreamString(record.result) || undefined
+
+    if (!preview && !toolCallId && !name) return null
+    const chunk: Extract<StreamChunkType, { type: 'tool' }> = {
       type: 'tool',
       name,
-      label: label || name,
-      toolCallId,
-      status,
+      label: preview || name,
     }
+    if (status) chunk.status = status
+    if (status || statusRaw) chunk.phase = phase
+    if (toolCallId) chunk.toolCallId = toolCallId
+    if (preview && (toolCallId || status || statusRaw)) chunk.preview = preview
+    if (result) chunk.result = result
+    return chunk
   } catch {
     return null
   }
@@ -213,52 +214,51 @@ export async function* parseOpenAIStream(
       const rawEvent = buffer.slice(0, boundary)
       buffer = buffer.slice(boundary + 2)
 
-      let eventName = ''
-      const dataLines: string[] = []
-
+      let eventName = 'message'
+      const dataLines: Array<string> = []
       for (const line of rawEvent.split('\n')) {
         const trimmed = line.trim()
         if (trimmed.startsWith('event:')) {
-          eventName = trimmed.slice(6).trim()
-          continue
-        }
-        if (trimmed.startsWith('data:')) {
+          eventName = trimmed.slice(6).trim() || 'message'
+        } else if (trimmed.startsWith('data:')) {
           dataLines.push(trimmed.slice(5).trim())
         }
       }
 
-      for (const payload of dataLines) {
-        if (!payload || payload === '[DONE]') continue
+      const payload = dataLines.join('\n')
+      if (!payload || payload === '[DONE]') {
+        boundary = buffer.indexOf('\n\n')
+        continue
+      }
 
-        if (
-          eventName === 'claude.tool.progress' ||
-          eventName === 'hermes.tool.progress'
-        ) {
-          const toolChunk = parseClaudeToolProgressChunk(payload)
-          if (toolChunk) yield toolChunk
-          continue
-        }
+      if (
+        eventName === 'claude.tool.progress' ||
+        eventName === 'hermes.tool.progress'
+      ) {
+        const toolChunk = parseToolProgressChunk(payload)
+        if (toolChunk) yield toolChunk
+        boundary = buffer.indexOf('\n\n')
+        continue
+      }
 
-        try {
-          const parsed = JSON.parse(payload) as {
-            choices?: Array<{
-              delta?: {
-                content?: string | null
-                reasoning?: string | null
-                reasoning_content?: string | null
-              }
-            }>
-          }
-          const d = parsed.choices?.[0]?.delta
-          const content = d?.content || ''
-          const reasoning = d?.reasoning || d?.reasoning_content || ''
-          // Yield content when available; fall back to reasoning only if no content yet
-          if (content) yield { type: 'content' as const, text: content }
-          else if (reasoning)
-            yield { type: 'reasoning' as const, text: reasoning }
-        } catch {
-          // Ignore malformed chunks.
+      try {
+        const parsed = JSON.parse(payload) as {
+          choices?: Array<{
+            delta?: {
+              content?: string | null
+              reasoning?: string | null
+              reasoning_content?: string | null
+            }
+          }>
         }
+        const d = parsed.choices?.[0]?.delta
+        const content = d?.content || ''
+        const reasoning = d?.reasoning || d?.reasoning_content || ''
+        if (content) yield { type: 'content' as const, text: content }
+        else if (reasoning)
+          yield { type: 'reasoning' as const, text: reasoning }
+      } catch {
+        // Ignore malformed chunks.
       }
 
       boundary = buffer.indexOf('\n\n')

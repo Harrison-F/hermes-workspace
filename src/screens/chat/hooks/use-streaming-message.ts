@@ -40,6 +40,62 @@ type PortableHistoryMessage = {
   content: string
 }
 
+type ToolActivityPayload = {
+  name?: unknown
+  phase?: unknown
+  args?: unknown
+  preview?: unknown
+  result?: unknown
+  toolCallId?: unknown
+}
+
+function stringifyActivityDetails(value: unknown): string {
+  if (value === undefined || value === null || value === '') return ''
+  if (typeof value === 'string') return value.length > 1200 ? `${value.slice(0, 1200)}…` : value
+  try {
+    const serialized = JSON.stringify(value, null, 2)
+    return serialized.length > 1200 ? `${serialized.slice(0, 1200)}…` : serialized
+  } catch {
+    return String(value)
+  }
+}
+
+function formatToolActivity(payload: ToolActivityPayload): {
+  type: string
+  name: string
+  phase: string
+  text: string
+  details?: string
+} {
+  const name = typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : 'tool'
+  const phase = typeof payload.phase === 'string' && payload.phase.trim() ? payload.phase.trim() : 'calling'
+  const isMemory = /memory|remember|recall|save_memory/i.test(name)
+  const isFileWrite = /^(write_file|write|edit|Edit|Write)$/i.test(name)
+  const isFileRead = /^(read_file|read|Read|search_files)$/i.test(name)
+  const type = isMemory
+    ? 'memory_write'
+    : isFileWrite
+      ? 'file_write'
+      : isFileRead
+        ? 'file_read'
+        : 'tool_call'
+  const detailsParts = [
+    payload.args !== undefined ? `args:\n${stringifyActivityDetails(payload.args)}` : '',
+    payload.preview ? `preview:\n${stringifyActivityDetails(payload.preview)}` : '',
+    payload.result ? `result:\n${stringifyActivityDetails(payload.result)}` : '',
+  ].filter(Boolean)
+  const callId = typeof payload.toolCallId === 'string' && payload.toolCallId.trim()
+    ? ` #${payload.toolCallId.trim().slice(0, 10)}`
+    : ''
+  return {
+    type,
+    name,
+    phase,
+    text: `${name}${callId} · ${phase}`,
+    details: detailsParts.length > 0 ? detailsParts.join('\n\n') : undefined,
+  }
+}
+
 type UseStreamingMessageOptions = {
   onStarted?: (payload: { runId: string | null }) => void
   onChunk?: (text: string, fullText: string) => void
@@ -433,13 +489,17 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         case 'tool': {
           markActivity()
           {
-            const toolName = typeof payload.name === 'string' ? payload.name : 'tool'
-            const phase = typeof payload.phase === 'string' ? payload.phase : 'calling'
-            const isMemory = /memory|remember|recall|save_memory/i.test(toolName)
-            const isFileWrite = /^(write_file|write|edit|Edit|Write)$/i.test(toolName)
-            const isFileRead = /^(read_file|read|Read|search_files)$/i.test(toolName)
-            const eventType = isMemory ? 'memory_write' : isFileWrite ? 'file_write' : isFileRead ? 'file_read' : 'tool_call'
-            pushActivity({ type: eventType, time: new Date().toLocaleTimeString(), text: `${toolName} (${phase})` })
+            const activity = formatToolActivity(payload as ToolActivityPayload)
+            pushActivity({
+              type: activity.type,
+              time: new Date().toLocaleTimeString(),
+              text: activity.text,
+              name: activity.name,
+              phase: activity.phase,
+              details: activity.details,
+              runId: activeRunIdRef.current ?? undefined,
+              sessionKey: activeSessionKeyRef.current,
+            })
           }
           processStoreEvent({
             type: 'tool',

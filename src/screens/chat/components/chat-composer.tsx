@@ -48,7 +48,7 @@ import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import { useVoiceDictationStore } from '@/stores/voice-dictation-store'
 import { toast } from '@/components/ui/toast'
 
-type ChatComposerAttachment = {
+export type ChatComposerAttachment = {
   id: string
   name: string
   contentType: string
@@ -478,7 +478,7 @@ function collectFilesFromDataTransfer(dt: DataTransfer | null): Array<File> {
 
   const pushFile = (file: File | null) => {
     if (!file) return
-    const key = `${file.name}:${file.size}:${file.lastModified}:${file.type}`
+    const key = getAttachmentFileSignature(file)
     if (seen.has(key)) return
     seen.add(key)
     files.push(file)
@@ -494,6 +494,35 @@ function collectFilesFromDataTransfer(dt: DataTransfer | null): Array<File> {
   }
 
   return files
+}
+
+export function getAttachmentFileSignature(file: Pick<File, 'name' | 'size' | 'lastModified' | 'type'>): string {
+  return `${file.name}:${file.size}:${file.lastModified}:${file.type}`
+}
+
+export function getComposerAttachmentSignature(attachment: ChatComposerAttachment): string {
+  const dataUrl = attachment.dataUrl || attachment.previewUrl || ''
+  if (dataUrl) return `data:${attachment.contentType}:${attachment.size}:${dataUrl}`
+  return `meta:${attachment.name}:${attachment.contentType}:${attachment.size}`
+}
+
+export function mergeUniqueComposerAttachments(
+  existing: Array<ChatComposerAttachment>,
+  incoming: Array<ChatComposerAttachment>,
+): Array<ChatComposerAttachment> {
+  const seen = new Set(existing.map(getComposerAttachmentSignature))
+  const merged = [...existing]
+  for (const attachment of incoming) {
+    const signature = getComposerAttachmentSignature(attachment)
+    if (seen.has(signature)) continue
+    seen.add(signature)
+    merged.push(attachment)
+  }
+  return merged
+}
+
+function createAttachmentBatchSignature(files: Array<File>): string {
+  return files.map(getAttachmentFileSignature).sort().join('|')
 }
 
 async function readFileAsDataUrl(file: File): Promise<string | null> {
@@ -799,6 +828,7 @@ function ChatComposerComponent({
   const modelSelectorRef = useRef<HTMLDivElement | null>(null)
   const composerWrapperRef = useRef<HTMLDivElement | null>(null)
   const focusFrameRef = useRef<number | null>(null)
+  const processingAttachmentBatchesRef = useRef<Set<string>>(new Set())
 
   // Phase 4.2: Pinned models (kept for future use)
   const { pinned, isPinned, togglePin } = usePinnedModels()
@@ -1199,12 +1229,20 @@ function ChatComposerComponent({
   const addAttachments = useCallback(
     async (files: Array<File>) => {
       if (disabled) return
+      const batchSignature = createAttachmentBatchSignature(files)
+      if (batchSignature && processingAttachmentBatchesRef.current.has(batchSignature)) {
+        return
+      }
+      if (batchSignature) {
+        processingAttachmentBatchesRef.current.add(batchSignature)
+      }
       setAttachmentProcessingCount((n) => n + 1)
 
-      const timestamp = Date.now()
-      const prepared = await Promise.all(
-        files.map(
-          async (file, index): Promise<ChatComposerAttachment | null> => {
+      try {
+        const timestamp = Date.now()
+        const prepared = await Promise.all(
+          files.map(
+            async (file, index): Promise<ChatComposerAttachment | null> => {
             const imageFile = isImageFile(file)
             const textFile = isTextFile(file)
             if (!imageFile && !textFile && file.type.trim().length > 0) {
@@ -1286,29 +1324,33 @@ function ChatComposerComponent({
         ),
       )
 
-      const valid = prepared.filter(
-        (attachment): attachment is ChatComposerAttachment =>
-          attachment !== null,
-      )
-
-      const skippedCount = prepared.length - valid.length
-      if (skippedCount > 0) {
-        toast(
-          skippedCount === 1
-            ? '1 file could not be attached.'
-            : `${skippedCount} files could not be attached.`,
-          { type: 'warning' },
+        const valid = prepared.filter(
+          (attachment): attachment is ChatComposerAttachment =>
+            attachment !== null,
         )
-      }
 
-      if (valid.length === 0) {
+        const skippedCount = prepared.length - valid.length
+        if (skippedCount > 0) {
+          toast(
+            skippedCount === 1
+              ? '1 file could not be attached.'
+              : `${skippedCount} files could not be attached.`,
+            { type: 'warning' },
+          )
+        }
+
+        if (valid.length === 0) {
+          return
+        }
+
+        setAttachments((prev) => mergeUniqueComposerAttachments(prev, valid))
+        focusPrompt()
+      } finally {
+        if (batchSignature) {
+          processingAttachmentBatchesRef.current.delete(batchSignature)
+        }
         setAttachmentProcessingCount((n) => Math.max(0, n - 1))
-        return
       }
-
-      setAttachments((prev) => [...prev, ...valid])
-      setAttachmentProcessingCount((n) => Math.max(0, n - 1))
-      focusPrompt()
     },
     [disabled, focusPrompt],
   )

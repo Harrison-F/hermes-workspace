@@ -9,6 +9,7 @@ import type {
 
 const STORAGE_KEY = 'hermes-kanban-active-board'
 const ACTIVE_BOARD_COOKIE = 'hermes-kanban-active-board'
+const OPENING_CONVON_BOARD_COOKIE = 'hermes-opening-convon-board'
 const BOARDS_CACHE_KEY = 'hermes-kanban-boards-cache-v1'
 const TASKS_CACHE_PREFIX = 'hermes-kanban-tasks-cache-v1:'
 const ACTIVE_BOARD_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
@@ -294,9 +295,18 @@ export function useKanban({ initialData = null }: UseKanbanOptions = {}): UseKan
     initialData?.activeBoardId ??
     (() => {
       try {
-        return localStorage.getItem(STORAGE_KEY) || readCookieValue(ACTIVE_BOARD_COOKIE) || null
+        return (
+          localStorage.getItem(STORAGE_KEY) ||
+          readCookieValue(ACTIVE_BOARD_COOKIE) ||
+          readCookieValue(OPENING_CONVON_BOARD_COOKIE) ||
+          null
+        )
       } catch {
-        return readCookieValue(ACTIVE_BOARD_COOKIE) || null
+        return (
+          readCookieValue(OPENING_CONVON_BOARD_COOKIE) ||
+          readCookieValue(ACTIVE_BOARD_COOKIE) ||
+          null
+        )
       }
     })()
 

@@ -75,6 +75,8 @@ export let CLAUDE_DASHBOARD_URL = normalizeUrl(
     'http://127.0.0.1:9119',
 )
 
+export { CLAUDE_API as HERMES_API, CLAUDE_DASHBOARD_URL as HERMES_DASHBOARD_URL }
+
 /**
  * Update the gateway URL at runtime, persist it, and reset the probe cache
  * so the next call to ensureGatewayProbed() re-detects capabilities.

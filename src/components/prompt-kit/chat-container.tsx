@@ -127,7 +127,7 @@ function ChatContainerRoot({
     >
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
         style={{ overflowAnchor: 'none' }}
         data-chat-scroll-viewport
         {...props}
@@ -146,14 +146,14 @@ function ChatContainerContent({
 }: ChatContainerContentProps) {
   return (
     <div
-      className={cn('flex w-full flex-col min-h-full', className)}
+      className={cn('flex w-full min-w-0 flex-col min-h-full overflow-x-hidden', className)}
       {...props}
     >
       <div
-        className="mx-auto w-full px-3 sm:px-5 flex flex-col"
+        className="mx-auto w-full min-w-0 px-3 sm:px-5 flex flex-col overflow-x-hidden"
         style={{ maxWidth: 'min(var(--chat-content-max-width), 100%)' }}
       >
-        <div className="flex flex-col space-y-3">{children}</div>
+        <div className="flex min-w-0 flex-col space-y-3 overflow-x-hidden">{children}</div>
       </div>
     </div>
   )

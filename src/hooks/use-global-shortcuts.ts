@@ -4,6 +4,15 @@
  */
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { toast } from '@/components/ui/toast'
+import {
+  getDebugBundlePayload,
+  installDebugCollectors,
+  buildDebugBundle,
+  matchesDebugShortcut,
+  recordDebugUiEvent,
+} from '@/lib/debug-bundle'
+import { writeTextToClipboard } from '@/lib/clipboard'
 import { useSearchModal } from '@/hooks/use-search-modal'
 import { useWorkspaceStore } from '@/stores/workspace-store'
 
@@ -14,6 +23,19 @@ function _isInputFocused(): boolean {
   if (tag === 'input' || tag === 'textarea') return true
   if ((active as HTMLElement).isContentEditable) return true
   return false
+}
+
+type ShortcutEvent = {
+  key: string
+  metaKey: boolean
+  ctrlKey: boolean
+  shiftKey: boolean
+  altKey: boolean
+}
+
+export function shouldFocusChatShortcut(event: ShortcutEvent): boolean {
+  const mod = event.metaKey || event.ctrlKey
+  return mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k'
 }
 
 // Sidebar toggle event — listened by the sidebar component
@@ -31,6 +53,34 @@ export function useGlobalShortcuts() {
   const toggleChatPanel = useWorkspaceStore((s) => s.toggleChatPanel)
 
   useEffect(() => {
+    installDebugCollectors()
+  }, [])
+
+  useEffect(() => {
+    async function copyDebugBundle() {
+      const workspaceState = useWorkspaceStore.getState()
+      const payload = getDebugBundlePayload({
+        route: window.location.pathname,
+        sessionKey: window.location.pathname.startsWith('/chat/')
+          ? decodeURIComponent(window.location.pathname.replace('/chat/', ''))
+          : workspaceState.chatPanelOpen
+            ? workspaceState.chatPanelSessionKey
+            : null,
+        selectedMessageId: null,
+        appVersion: import.meta.env.VITE_GIT_SHA || import.meta.env.MODE || 'dev',
+        stateSnapshot: {
+          sidebarCollapsed: workspaceState.sidebarCollapsed,
+          fileExplorerCollapsed: workspaceState.fileExplorerCollapsed,
+          chatPanelOpen: workspaceState.chatPanelOpen,
+          chatPanelSessionKey: workspaceState.chatPanelSessionKey,
+          activeSubPage: workspaceState.activeSubPage,
+        },
+      })
+      await writeTextToClipboard(buildDebugBundle(payload))
+      toast('Debug bundle copied', { type: 'success', icon: '🪵' })
+      recordDebugUiEvent('Copied debug bundle hotkey')
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.isComposing) return
 
@@ -58,8 +108,20 @@ export function useGlobalShortcuts() {
         return
       }
 
-      // Cmd/Ctrl+Shift+L — Focus chat workspace
-      if (mod && event.shiftKey && event.key.toLowerCase() === 'l') {
+      // Cmd/Ctrl+Shift+Alt+L — Copy debug bundle
+      if (matchesDebugShortcut(event)) {
+        event.preventDefault()
+        void copyDebugBundle().catch((error) => {
+          toast(
+            error instanceof Error ? error.message : 'Failed to copy debug bundle',
+            { type: 'error' },
+          )
+        })
+        return
+      }
+
+      // Cmd/Ctrl+Shift+K — Focus chat workspace
+      if (shouldFocusChatShortcut(event)) {
         event.preventDefault()
         void navigate({ to: '/chat' })
         return

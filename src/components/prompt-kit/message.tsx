@@ -60,7 +60,8 @@ function MessageContent({
   ...props
 }: MessageContentProps) {
   const classNames = cn(
-    'rounded-[12px] break-words whitespace-normal min-w-0',
+    'rounded-[12px] break-words min-w-0',
+    markdown ? 'whitespace-normal' : 'whitespace-pre-wrap',
     className,
   )
 

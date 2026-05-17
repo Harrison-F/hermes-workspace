@@ -32,7 +32,6 @@ export function VoiceDictationManager() {
   const lastRecorderLogRef = useRef<{ state: string; secondBucket: number } | null>(null)
 
   const voiceRecorder = useVoiceRecorder({
-    maxDurationMs: 120_000,
     onRecorded: async (blob, durationMs) => {
       const currentSource = useVoiceDictationStore.getState().source
       pushDebugEvent('recording:captured', {

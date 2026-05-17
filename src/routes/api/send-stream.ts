@@ -222,6 +222,7 @@ function getToolCallId(
   return (
     readString(toolCall?.id) ||
     readString(tool?.id) ||
+    readString(data.toolCallId) ||
     readString(data.tool_call_id) ||
     readString(data.call_id) ||
     readString(data.id) ||
@@ -349,7 +350,7 @@ export const Route = createFileRoute('/api/send-stream')({
         let activeRunId: string | null = null
         let unregisterTimer: ReturnType<typeof setTimeout> | null = null
         const abortController = new AbortController()
-        let closeStream = () => {
+        let closeStream = (_options?: { abortBackend?: boolean }) => {
           streamClosed = true
         }
 
@@ -361,8 +362,14 @@ export const Route = createFileRoute('/api/send-stream')({
               controller.enqueue(encoder.encode(payload))
             }
 
-            closeStream = () => {
-              if (streamClosed) return
+            closeStream = (options?: { abortBackend?: boolean }) => {
+              const abortBackend = options?.abortBackend !== false
+              if (streamClosed) {
+                if (abortBackend) {
+                  abortController.abort()
+                }
+                return
+              }
               streamClosed = true
               if (unregisterTimer) {
                 clearTimeout(unregisterTimer)
@@ -372,7 +379,9 @@ export const Route = createFileRoute('/api/send-stream')({
                 unregisterActiveSendRun(activeRunId)
                 activeRunId = null
               }
-              abortController.abort()
+              if (abortBackend) {
+                abortController.abort()
+              }
               try {
                 controller.close()
               } catch {
@@ -444,6 +453,16 @@ export const Route = createFileRoute('/api/send-stream')({
                         sessionKey: portableSessionKey,
                         runId,
                       })
+                    } else if (chunk.type === 'tool') {
+                      sendEvent('tool', {
+                        phase: chunk.phase,
+                        name: chunk.name,
+                        toolCallId: chunk.toolCallId,
+                        preview: chunk.preview,
+                        result: chunk.result,
+                        sessionKey: portableSessionKey,
+                        runId,
+                      })
                     } else {
                       accumulated += chunk.text
                       sendEvent('chunk', {
@@ -477,20 +496,20 @@ export const Route = createFileRoute('/api/send-stream')({
                   })
                   closeStream()
                 } catch (err) {
+                  const errorMessage = normalizeHermesErrorMessage(err)
+                  await appendWorkspaceMessage(portableFriendlyId, {
+                    role: 'assistant',
+                    text: errorMessage,
+                    content: [{ type: 'text', text: errorMessage }],
+                  })
                   if (!streamClosed) {
-                    const errorMessage = normalizeHermesErrorMessage(err)
-                    await appendWorkspaceMessage(portableFriendlyId, {
-                      role: 'assistant',
-                      text: errorMessage,
-                      content: [{ type: 'text', text: errorMessage }],
-                    })
                     sendEvent('error', {
                       message: errorMessage,
                       sessionKey: portableSessionKey,
                       runId,
                     })
-                    closeStream()
                   }
+                  closeStream()
                 }
                 return
               }
@@ -509,10 +528,12 @@ export const Route = createFileRoute('/api/send-stream')({
               let completedSent = false
               let errorSent = false
               let sawAssistantContent = false
-              // In enhanced mode, the HTTP stream response delivers all events
-              // directly to useStreamingMessage. Skip publishChatEvent to prevent
-              // useRealtimeChatHistory from creating duplicate message bubbles.
-              const skipPublish = true
+              // In enhanced mode, the direct HTTP stream gets first chance at
+              // events. publishChatEvent is still called, but the event bus
+              // suppresses active direct sends. If the browser disconnects,
+              // closeStream unregisters the run without aborting it so realtime
+              // subscribers can receive the continuing run after reconnect.
+              const skipPublish = false
               await streamChat(
                 sessionKey,
                 {
@@ -642,13 +663,16 @@ export const Route = createFileRoute('/api/send-stream')({
                       event === 'tool.pending' ||
                       event === 'tool.started' ||
                       event === 'tool.calling' ||
-                      event === 'tool.running'
+                      event === 'tool.running' ||
+                      (event === 'hermes.tool.progress' && readString(data.status) === 'running')
                     ) {
                       const toolName = getToolName(data)
                       const preview =
                         typeof data.preview === 'string'
                           ? data.preview
-                          : undefined
+                          : typeof data.label === 'string'
+                            ? data.label
+                            : undefined
                       const translated = {
                         phase:
                           event === 'tool.pending' || event === 'tool.started'
@@ -694,7 +718,7 @@ export const Route = createFileRoute('/api/send-stream')({
                       return
                     }
 
-                    if (event === 'tool.completed') {
+                    if (event === 'tool.completed' || (event === 'hermes.tool.progress' && readString(data.status) === 'completed')) {
                       const toolName = getToolName(data)
                       const resultPreview = getToolResultPreview(data)
                       const translated = {
@@ -870,7 +894,11 @@ export const Route = createFileRoute('/api/send-stream')({
             }
           },
           cancel() {
-            closeStream()
+            // Client disconnects (navigation, reload, app close) should detach
+            // the browser stream, not cancel a Hermes run that has already been
+            // accepted. The portable-mode task continues and persists the final
+            // assistant/error message into the workspace session store.
+            closeStream({ abortBackend: false })
           },
         })
 

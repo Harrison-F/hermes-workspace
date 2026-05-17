@@ -151,6 +151,46 @@ function persistStreamingState(sessionKey: string, state: StreamingState): void 
   }, 500)
 }
 
+export function readRecoveryMessage(sessionKey: string): ChatMessage | null {
+  if (typeof sessionStorage === 'undefined') return null
+  const storageKey = `hermes_recovery_message_${sessionKey}`
+  const raw = sessionStorage.getItem(storageKey)
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as ChatMessage & { _savedAt?: unknown }
+    const savedAt =
+      typeof parsed._savedAt === 'number' && Number.isFinite(parsed._savedAt)
+        ? parsed._savedAt
+        : null
+    if (!savedAt || Date.now() - savedAt > 5 * 60_000) {
+      sessionStorage.removeItem(storageKey)
+      return null
+    }
+    const { _savedAt, ...message } = parsed
+    return message as ChatMessage
+  } catch {
+    sessionStorage.removeItem(storageKey)
+    return null
+  }
+}
+
+export function writeRecoveryMessage(
+  sessionKey: string,
+  message: ChatMessage,
+): void {
+  if (typeof sessionStorage === 'undefined') return
+  sessionStorage.setItem(
+    `hermes_recovery_message_${sessionKey}`,
+    JSON.stringify({ ...message, _savedAt: Date.now() }),
+  )
+}
+
+export function clearRecoveryMessage(sessionKey: string): void {
+  if (typeof sessionStorage === 'undefined') return
+  sessionStorage.removeItem(`hermes_recovery_message_${sessionKey}`)
+}
+
 export function restoreStreamingState(sessionKey: string): StreamingState | null {
   if (typeof sessionStorage === 'undefined') return null
 
@@ -530,6 +570,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     switch (event.type) {
       case 'message':
       case 'user_message': {
+        // Ignore empty assistant placeholders (for example Hermes `message.started`).
+        // Streaming state already renders the live placeholder; storing this as a
+        // real message leaves a blank assistant bubble if the final `done` event
+        // arrives without the same message id.
+        if (event.message.role === 'assistant' && extractMessageText(event.message).trim().length === 0) {
+          break
+        }
+
         // Filter internal system event messages that should never appear in chat.
         // These are pre-compaction flushes, heartbeat prompts, and similar
         // server-injected control messages — mirror the filter in use-chat-history.ts.
@@ -879,8 +927,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
         }
 
+        const messages = new Map(state.realtimeMessages)
+
         if (completeMessage) {
-          const messages = new Map(state.realtimeMessages)
           const sessionMessages = [...(messages.get(sessionKey) ?? [])]
 
           // Deduplicate: by ID or exact content (bug #7 fix).
@@ -899,7 +948,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (!isDuplicate) {
             sessionMessages.push(completeMessage)
             messages.set(sessionKey, sortMessagesChronologically(sessionMessages))
-            set({ realtimeMessages: messages })
           } else {
             // If there IS a duplicate (e.g. a tagged pre-final message was stored),
             // replace it with the clean final version so the UI shows clean text.
@@ -916,18 +964,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 ...completeMessage,
               }
               messages.set(sessionKey, sortMessagesChronologically(sessionMessages))
-              set({ realtimeMessages: messages })
             }
           }
         }
 
-        // Clear streaming state immediately — tool calls are preserved via
-        // __streamToolCalls embedded on completeMessage above, so pills survive
-        // in the history message without needing streaming state alive.
-        // DO NOT keep a stub here — it keeps isRealtimeStreaming=true which
-        // injects an invisible streaming placeholder that causes a blank gap.
+        // Clear streaming state in the same store update that publishes the final
+        // assistant message. If these are separate updates, React can briefly
+        // render both the completed assistant message and the still-active
+        // streaming placeholder, which looks like two responses before the next
+        // render consolidates them.
         streamingMap.delete(sessionKey)
-        set({ streamingState: streamingMap, lastEventAt: now })
+        set({ realtimeMessages: messages, streamingState: streamingMap, lastEventAt: now })
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.removeItem(`hermes_streaming_${sessionKey}`)
         }

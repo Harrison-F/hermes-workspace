@@ -172,7 +172,7 @@ function buildPortableHistory(messages: Array<ChatMessage>): Array<PortableHisto
       }
     })
     .filter((message): message is PortableHistoryMessage => message !== null)
-    .slice(-20)
+    .slice(-12)
 }
 
 
@@ -535,6 +535,9 @@ export function ChatScreen({
     portableMode: isPortableMode,
   })
 
+  const activeSessionKeyForChat =
+    resolvedSessionKey || sessionKeyForHistory || activeCanonicalKey || portableChatFriendlyId || 'main'
+
   // Wire SSE realtime stream for instant message delivery
   const {
     messages: realtimeMessages,
@@ -549,14 +552,14 @@ export function ChatScreen({
     clearCompletedStreaming,
     activeToolCalls,
   } = useRealtimeChatHistory({
-      sessionKey: isPortableMode ? 'main' : (resolvedSessionKey || sessionKeyForHistory || activeCanonicalKey || 'main'),
+      sessionKey: activeSessionKeyForChat,
       friendlyId: portableChatFriendlyId,
       historyMessages,
       portableMode: isPortableMode,
       enabled:
         // Always enable for new chats in portable mode (no sessions API to resolve).
         // In enhanced mode, wait for session resolution before subscribing.
-        (isNewChat || Boolean(resolvedSessionKey || sessionKeyForHistory || activeCanonicalKey)) &&
+        (isNewChat || Boolean(activeSessionKeyForChat)) &&
         !isRedirecting,
       onUserMessage: useCallback(() => {
         // External message arrived (e.g. from Telegram) — show thinking indicator
@@ -799,9 +802,8 @@ export function ChatScreen({
     void historyQuery.refetch().then(() => {
       // Re-inject optimistic messages that weren't in the server response
       if (pendingOptimistic.length === 0) return
-      const historySessionKey = isPortableMode
-        ? 'main'
-        : (activeSessionKey || sessionKeyForHistory || resolvedSessionKey || 'main')
+      const historySessionKey =
+        activeSessionKey || sessionKeyForHistory || resolvedSessionKey || portableChatFriendlyId || 'main'
       if (!portableChatFriendlyId || !historySessionKey) return
 
       for (const optimistic of pendingOptimistic) {
@@ -1804,7 +1806,7 @@ export function ChatScreen({
     }
 
     const pendingSessionKey =
-      isPortableMode ? 'main' : (forcedSessionKey || resolvedSessionKey || activeSessionKey || '')
+      forcedSessionKey || resolvedSessionKey || activeSessionKey || sessionKeyForHistory || portableChatFriendlyId || ''
     const persistedPending = pendingSessionKey
       ? readPendingMessage(pendingSessionKey, portableChatFriendlyId)
       : null
@@ -1828,6 +1830,7 @@ export function ChatScreen({
     isPortableMode,
     portableChatFriendlyId,
     resolvedSessionKey,
+    sessionKeyForHistory,
     streamStop,
   ])
 
@@ -1991,7 +1994,7 @@ export function ChatScreen({
   useLayoutEffect(() => {
     if (isNewChat) return
     const pending = consumePendingSend(
-      isPortableMode ? 'main' : (forcedSessionKey || resolvedSessionKey || activeSessionKey),
+      forcedSessionKey || resolvedSessionKey || activeSessionKey || sessionKeyForHistory || portableChatFriendlyId,
       portableChatFriendlyId,
     )
     if (!pending) return
@@ -2044,6 +2047,7 @@ export function ChatScreen({
     portableChatFriendlyId,
     queryClient,
     resolvedSessionKey,
+    sessionKeyForHistory,
     sendMessage,
   ])
 
@@ -2060,9 +2064,8 @@ export function ChatScreen({
         return false
       }
 
-      const sessionKeyForSend = isPortableMode
-        ? 'main'
-        : (forcedSessionKey || resolvedSessionKey || activeSessionKey || 'main')
+      const sessionKeyForSend =
+        forcedSessionKey || resolvedSessionKey || activeSessionKey || sessionKeyForHistory || portableChatFriendlyId || 'main'
       const sessionKeyForMessage = sessionKeyForHistory || sessionKeyForSend
       const existingClientId = getMessageClientId(message)
 
@@ -2105,6 +2108,11 @@ export function ChatScreen({
   const flushRetryableMessages = useCallback(
     function flushRetryableMessages() {
       for (const message of finalDisplayMessages) {
+        // Auto-retry is intentionally text-only. Image/file sends can fail after
+        // the optimistic message is already visible; replaying them on health
+        // pings or page refresh creates duplicate “Please review…” bubbles and
+        // duplicate attachment uploads. Leave attachment retries manual.
+        if (getMessageRetryAttachments(message).length > 0) continue
         retryQueuedMessage(message, 'auto')
       }
     },
@@ -2350,9 +2358,11 @@ export function ChatScreen({
       )
 
       if (isNewChat) {
-        // In portable mode, use 'main' — no server-side sessions exist.
-        // In enhanced mode, create a UUID thread for the sessions API.
-        const threadId = isPortableMode ? 'main' : crypto.randomUUID()
+        // Use a real per-chat id in both portable and enhanced modes. Portable
+        // mode has no backend sessions API, but Workspace has its own local
+        // session store; collapsing everything to "main" leaks context between
+        // chats and makes replies land in the wrong thread.
+        const threadId = crypto.randomUUID()
         const { optimisticMessage } = createOptimisticMessage(
           trimmedBody,
           attachmentPayload,
@@ -2383,7 +2393,6 @@ export function ChatScreen({
             ? optimisticMessage.clientId
             : '',
         )
-        // In portable mode, navigate to /chat/main instead of UUID
         navigate({
           to: '/chat/$sessionKey',
           params: { sessionKey: threadId },
@@ -2392,12 +2401,11 @@ export function ChatScreen({
         return
       }
 
-      const sessionKeyForSend = isPortableMode
-        ? 'main'
-        : (forcedSessionKey || resolvedSessionKey || activeSessionKey || 'main')
+      const sessionKeyForSend =
+        forcedSessionKey || resolvedSessionKey || activeSessionKey || sessionKeyForHistory || portableChatFriendlyId || 'main'
       sendMessage(
         sessionKeyForSend,
-        isPortableMode ? 'main' : activeFriendlyId,
+        portableChatFriendlyId,
         trimmedBody,
         attachmentPayload,
         fastMode,
@@ -2409,6 +2417,7 @@ export function ChatScreen({
       createSessionForMessage,
       forcedSessionKey,
       isNewChat,
+      isPortableMode,
       navigate,
       onSessionResolved,
       scrollChatToBottom,
@@ -2416,6 +2425,8 @@ export function ChatScreen({
       upsertSessionInCache,
       queryClient,
       resolvedSessionKey,
+      sessionKeyForHistory,
+      portableChatFriendlyId,
       handleUiSlashCommand,
     ],
   )

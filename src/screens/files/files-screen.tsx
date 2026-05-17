@@ -22,7 +22,7 @@ import { Markdown } from '@/components/prompt-kit/markdown'
 // Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-type FileEntry = {
+export type FileEntry = {
   name: string
   path: string
   type: 'file' | 'folder'
@@ -53,10 +53,20 @@ type PromptState = {
   defaultValue?: string
 }
 
+type MoveState = {
+  entry: FileEntry
+  targetFolderPath: string
+}
+
 type ContextMenuState = {
   x: number
   y: number
   entry: FileEntry
+}
+
+type DragState = {
+  draggingPath: string | null
+  dropTargetPath: string | null
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -153,6 +163,39 @@ function getParentPath(pathValue: string): string {
   const parts = pathValue.replace(/\\/g, '/').split('/').filter(Boolean)
   if (parts.length <= 1) return ''
   return parts.slice(0, -1).join('/')
+}
+
+export function buildMoveDestination(
+  entry: FileEntry,
+  targetFolder: Pick<FileEntry, 'path'>,
+): string {
+  return targetFolder.path ? `${targetFolder.path}/${entry.name}` : entry.name
+}
+
+export function canDropEntryIntoFolder(
+  entry: Pick<FileEntry, 'path' | 'type'>,
+  targetFolder: Pick<FileEntry, 'path' | 'type'>,
+): boolean {
+  if (targetFolder.type !== 'folder') return false
+  if (entry.path === targetFolder.path) return false
+  if (entry.type === 'folder') {
+    return !targetFolder.path.startsWith(`${entry.path}/`)
+  }
+  return getParentPath(entry.path) !== targetFolder.path
+}
+
+function findEntryByPath(
+  entries: Array<FileEntry>,
+  targetPath: string,
+): FileEntry | null {
+  for (const entry of entries) {
+    if (entry.path === targetPath) return entry
+    if (entry.children?.length) {
+      const child = findEntryByPath(entry.children, targetPath)
+      if (child) return child
+    }
+  }
+  return null
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -559,9 +602,14 @@ type TreeNodeProps = {
   depth: number
   expanded: Set<string>
   selectedPath: string | null
+  dragState: DragState
   onToggle: (path: string) => void
   onSelect: (entry: FileEntry) => void
   onContextMenu: (e: React.MouseEvent, entry: FileEntry) => void
+  onDragStart: (entry: FileEntry) => void
+  onDragEnd: () => void
+  onDragOverFolder: (entry: FileEntry, e: React.DragEvent) => void
+  onDropIntoFolder: (entry: FileEntry, e: React.DragEvent) => void
 }
 
 function TreeNode({
@@ -569,12 +617,18 @@ function TreeNode({
   depth,
   expanded,
   selectedPath,
+  dragState,
   onToggle,
   onSelect,
   onContextMenu,
+  onDragStart,
+  onDragEnd,
+  onDragOverFolder,
+  onDropIntoFolder,
 }: TreeNodeProps) {
   const isExpanded = expanded.has(entry.path)
   const isSelected = selectedPath === entry.path
+  const isDropTarget = dragState.dropTargetPath === entry.path
   const icon = getFileIcon(entry)
   const paddingLeft = 12 + depth * 16
 
@@ -590,13 +644,25 @@ function TreeNode({
     <div>
       <button
         type="button"
+        draggable
         onClick={handleClick}
         onContextMenu={(e) => onContextMenu(e, entry)}
+        onDragStart={() => onDragStart(entry)}
+        onDragEnd={onDragEnd}
+        onDragOver={(e) => {
+          if (entry.type === 'folder') onDragOverFolder(entry, e)
+        }}
+        onDrop={(e) => {
+          if (entry.type === 'folder') onDropIntoFolder(entry, e)
+        }}
         className={cn(
           'flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left text-sm transition-colors',
           isSelected
             ? 'bg-accent-500/15 text-accent-600 dark:text-accent-400'
             : 'text-primary-900 dark:text-neutral-200 hover:bg-primary-200 dark:hover:bg-neutral-800',
+          entry.type === 'folder' && isDropTarget
+            ? 'ring-2 ring-accent-500/50 bg-accent-500/10'
+            : '',
         )}
         style={{ paddingLeft }}
       >
@@ -627,9 +693,14 @@ function TreeNode({
                 depth={depth + 1}
                 expanded={expanded}
                 selectedPath={selectedPath}
+                dragState={dragState}
                 onToggle={onToggle}
                 onSelect={onSelect}
                 onContextMenu={onContextMenu}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onDragOverFolder={onDragOverFolder}
+                onDropIntoFolder={onDropIntoFolder}
               />
             ))}
         </div>
@@ -1045,7 +1116,12 @@ export function FilesScreen() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [promptState, setPromptState] = useState<PromptState | null>(null)
   const [promptValue, setPromptValue] = useState('')
+  const [moveState, setMoveState] = useState<MoveState | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<FileEntry | null>(null)
+  const [dragState, setDragState] = useState<DragState>({
+    draggingPath: null,
+    dropTargetPath: null,
+  })
 
   const loadTree = useCallback(async () => {
     setTreeLoading(true)
@@ -1116,6 +1192,62 @@ export function FilesScreen() {
       setContextMenu({ x: e.clientX, y: e.clientY, entry })
     },
     [],
+  )
+
+  const moveEntry = useCallback(
+    async (entry: FileEntry, targetFolderPath: string) => {
+      const targetFolder = findEntryByPath(entries, targetFolderPath)
+      if (!targetFolder || !canDropEntryIntoFolder(entry, targetFolder)) return
+      const destination = buildMoveDestination(entry, targetFolder)
+      await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rename',
+          from: entry.path,
+          to: destination,
+        }),
+      })
+      if (selectedEntry?.path === entry.path) {
+        setSelectedEntry({ ...entry, path: destination })
+      }
+      await loadTree()
+    },
+    [entries, loadTree, selectedEntry],
+  )
+
+  const handleDragStart = useCallback((entry: FileEntry) => {
+    setDragState({ draggingPath: entry.path, dropTargetPath: null })
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    setDragState({ draggingPath: null, dropTargetPath: null })
+  }, [])
+
+  const handleDragOverFolder = useCallback(
+    (entry: FileEntry, e: React.DragEvent) => {
+      if (!dragState.draggingPath) return
+      const draggingEntry = findEntryByPath(entries, dragState.draggingPath)
+      if (!draggingEntry || !canDropEntryIntoFolder(draggingEntry, entry)) return
+      e.preventDefault()
+      if (dragState.dropTargetPath !== entry.path) {
+        setDragState((prev) => ({ ...prev, dropTargetPath: entry.path }))
+      }
+    },
+    [dragState.draggingPath, dragState.dropTargetPath, entries],
+  )
+
+  const handleDropIntoFolder = useCallback(
+    async (entry: FileEntry, e: React.DragEvent) => {
+      e.preventDefault()
+      const draggingPath = dragState.draggingPath
+      handleDragEnd()
+      if (!draggingPath) return
+      const draggingEntry = findEntryByPath(entries, draggingPath)
+      if (!draggingEntry || !canDropEntryIntoFolder(draggingEntry, entry)) return
+      await moveEntry(draggingEntry, entry.path)
+    },
+    [dragState.draggingPath, entries, handleDragEnd, moveEntry],
   )
 
   // ── CRUD actions ────────────────────────────────────────────────────────────
@@ -1196,6 +1328,12 @@ export function FilesScreen() {
     await loadTree()
   }, [promptState, promptValue, loadTree])
 
+  const handleMoveSubmit = useCallback(async () => {
+    if (!moveState) return
+    await moveEntry(moveState.entry, moveState.targetFolderPath)
+    setMoveState(null)
+  }, [moveEntry, moveState])
+
   const selectedPath = selectedEntry?.path ?? null
 
   return (
@@ -1266,9 +1404,14 @@ export function FilesScreen() {
                     depth={0}
                     expanded={expanded}
                     selectedPath={selectedPath}
+                    dragState={dragState}
                     onToggle={handleToggle}
                     onSelect={handleSelect}
                     onContextMenu={handleContextMenu}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragOverFolder={handleDragOverFolder}
+                    onDropIntoFolder={handleDropIntoFolder}
                   />
                 ))
             )}
@@ -1307,6 +1450,18 @@ export function FilesScreen() {
             }}
           >
             ✏️ Rename
+          </button>
+          <button
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-primary-100 dark:hover:bg-neutral-800"
+            onClick={() => {
+              setMoveState({
+                entry: contextMenu.entry,
+                targetFolderPath: getParentPath(contextMenu.entry.path),
+              })
+              setContextMenu(null)
+            }}
+          >
+            📦 Move to…
           </button>
           {contextMenu.entry.type === 'folder' ? (
             <button
@@ -1374,6 +1529,49 @@ export function FilesScreen() {
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button variant="outline">Cancel</Button>} />
               <Button onClick={() => void handlePromptSubmit()}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </DialogRoot>
+
+      {/* ── Move dialog ────────────────────────────────────────────────────── */}
+      <DialogRoot
+        open={Boolean(moveState)}
+        onOpenChange={(open) => {
+          if (!open) setMoveState(null)
+        }}
+      >
+        <DialogContent>
+          <div className="p-5 space-y-3">
+            <DialogTitle>Move {moveState?.entry.type === 'folder' ? 'Folder' : 'File'}</DialogTitle>
+            <DialogDescription>
+              Choose the destination folder for <strong>{moveState?.entry.name}</strong>.
+            </DialogDescription>
+            <select
+              value={moveState?.targetFolderPath ?? ''}
+              onChange={(e) =>
+                setMoveState((prev) =>
+                  prev ? { ...prev, targetFolderPath: e.target.value } : prev,
+                )
+              }
+              className="w-full rounded-md border border-primary-200 dark:border-neutral-700 bg-primary-50 dark:bg-neutral-900 px-3 py-2 text-sm text-primary-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-300"
+            >
+              {entries
+                .flatMap(function walk(entry): Array<FileEntry> {
+                  return entry.type === 'folder'
+                    ? [entry, ...(entry.children?.flatMap(walk) ?? [])]
+                    : []
+                })
+                .filter((folder) => moveState && canDropEntryIntoFolder(moveState.entry, folder))
+                .map((folder) => (
+                  <option key={folder.path || '__root__'} value={folder.path}>
+                    {folder.path || 'workspace'}
+                  </option>
+                ))}
+            </select>
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button variant="outline">Cancel</Button>} />
+              <Button onClick={() => void handleMoveSubmit()}>Move</Button>
             </div>
           </div>
         </DialogContent>

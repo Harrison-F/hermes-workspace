@@ -117,6 +117,17 @@ function EmptyState({ text }: { text: string }) {
   )
 }
 
+function getActivityIcon(type: string, phase?: string): string {
+  if (phase === 'error' || type.includes('error')) return '❌'
+  if (type === 'assistant_complete') return '✅'
+  if (type === 'assistant_start') return '🤖'
+  if (type === 'file_read') return '📖'
+  if (type === 'file_write') return '✏️'
+  if (type === 'memory_write') return '🧠'
+  if (type === 'tool_call') return '⚙️'
+  return '•'
+}
+
 // ── Activity Tab ──────────────────────────────────────────────────────────────
 
 function ActivityTab() {
@@ -136,26 +147,68 @@ function ActivityTab() {
       ref={scrollRef}
       className="space-y-1 p-3 overflow-auto max-h-[calc(100vh-140px)]"
     >
-      {events.map((event: ActivityEvent, i: number) => (
-        <div
-          key={i}
-          className="flex items-start gap-2 rounded-md px-2 py-1.5 text-xs"
-          style={{ background: 'var(--theme-card2)' }}
-        >
-          <span
-            style={{ color: 'var(--theme-accent)', fontFamily: 'monospace' }}
+      {events.map((event: ActivityEvent, i: number) => {
+        const meta = [
+          event.phase,
+          event.sessionKey ? `session ${event.sessionKey.slice(0, 8)}` : '',
+          event.runId ? `run ${event.runId.slice(0, 8)}` : '',
+        ].filter(Boolean).join(' · ')
+        return (
+          <div
+            key={i}
+            className="rounded-md px-2.5 py-2 text-xs"
+            style={{ background: 'var(--theme-card2)' }}
           >
-            {event.time}
-          </span>
-          <span style={{ color: 'var(--theme-muted)' }}>{event.type}</span>
-          <span
-            className="ml-auto truncate"
-            style={{ color: 'var(--theme-text)' }}
-          >
-            {event.text}
-          </span>
-        </div>
-      ))}
+            <div className="flex items-start gap-2">
+              <span className="shrink-0" aria-hidden="true">
+                {getActivityIcon(event.type, event.phase)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="shrink-0"
+                    style={{ color: 'var(--theme-accent)', fontFamily: 'monospace' }}
+                  >
+                    {event.time}
+                  </span>
+                  <span
+                    className="min-w-0 truncate font-mono"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
+                    {event.name || event.text}
+                  </span>
+                </div>
+                <div
+                  className="mt-0.5 flex items-center gap-1 text-[10px]"
+                  style={{ color: 'var(--theme-muted)' }}
+                >
+                  <span className="font-mono">{event.type}</span>
+                  {meta ? <span className="truncate">· {meta}</span> : null}
+                </div>
+                {event.name && event.text !== event.name ? (
+                  <div
+                    className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
+                    {event.text}
+                  </div>
+                ) : null}
+                {event.details ? (
+                  <pre
+                    className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap break-words rounded px-2 py-1 text-[10px] leading-relaxed"
+                    style={{
+                      color: 'var(--theme-muted)',
+                      background: 'var(--theme-card)',
+                    }}
+                  >
+                    {event.details}
+                  </pre>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

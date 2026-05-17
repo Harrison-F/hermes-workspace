@@ -42,6 +42,89 @@ describe('chat-store streaming lifecycle', () => {
     expect(useChatStore.getState().getRealtimeMessages('main').some((msg) => msg.role === 'assistant')).toBe(true)
   })
 
+  it('publishes final assistant message and clears streaming state atomically on done', () => {
+    const store = useChatStore.getState()
+    const observed = new Array<{ streaming: boolean; assistantMessages: number }>()
+    const unsubscribe = useChatStore.subscribe((state) => {
+      observed.push({
+        streaming: state.streamingState.has('main'),
+        assistantMessages: (state.realtimeMessages.get('main') ?? []).filter(
+          (msg) => msg.role === 'assistant',
+        ).length,
+      })
+    })
+
+    try {
+      store.processEvent({
+        type: 'chunk',
+        text: 'Streaming reply',
+        fullReplace: true,
+        sessionKey: 'main',
+        runId: 'run-atomic',
+        transport: 'send-stream',
+      })
+      store.processEvent({
+        type: 'done',
+        state: 'complete',
+        sessionKey: 'main',
+        runId: 'run-atomic',
+        transport: 'send-stream',
+        message: {
+          id: 'assistant-run-atomic',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Streaming reply' }],
+          timestamp: Date.now(),
+        },
+      })
+    } finally {
+      unsubscribe()
+    }
+
+    expect(
+      observed.some((snapshot) => snapshot.streaming && snapshot.assistantMessages > 0),
+    ).toBe(false)
+    expect(store.getStreamingState('main')).toBeNull()
+    expect(store.getRealtimeMessages('main').filter((msg) => msg.role === 'assistant')).toHaveLength(1)
+  })
+
+  it('ignores empty assistant placeholder messages before done fallback', () => {
+    const store = useChatStore.getState()
+
+    store.processEvent({
+      type: 'message',
+      sessionKey: 'main',
+      runId: 'run-empty-placeholder',
+      transport: 'send-stream',
+      message: {
+        id: 'assistant-placeholder',
+        role: 'assistant',
+        content: [],
+      },
+    })
+
+    expect(store.getRealtimeMessages('main').filter((msg) => msg.role === 'assistant')).toHaveLength(0)
+
+    store.processEvent({
+      type: 'chunk',
+      text: 'Final from streaming state',
+      fullReplace: true,
+      sessionKey: 'main',
+      runId: 'run-empty-placeholder',
+      transport: 'send-stream',
+    })
+    store.processEvent({
+      type: 'done',
+      state: 'complete',
+      sessionKey: 'main',
+      runId: 'run-empty-placeholder',
+      transport: 'send-stream',
+    })
+
+    const assistantMessages = store.getRealtimeMessages('main').filter((msg) => msg.role === 'assistant')
+    expect(assistantMessages).toHaveLength(1)
+    expect((assistantMessages[0].content?.[0] as { text?: string } | undefined)?.text).toBe('Final from streaming state')
+  })
+
   it('still processes chat-events done for active send-stream runs', () => {
     const store = useChatStore.getState()
 

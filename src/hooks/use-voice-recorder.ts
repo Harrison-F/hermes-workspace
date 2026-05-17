@@ -5,8 +5,11 @@ import { useCallback, useRef, useState } from 'react'
 type RecorderState = 'idle' | 'recording' | 'processing'
 
 type UseVoiceRecorderOptions = {
-  /** Max recording duration in ms. Default: 120000 (2 min) */
-  maxDurationMs?: number
+  /**
+   * Optional max recording duration in ms. Omit, set to null, or set <= 0 to
+   * record until the user explicitly stops.
+   */
+  maxDurationMs?: number | null
   /** Called with the recorded audio blob + duration */
   onRecorded?: (blob: Blob, durationMs: number) => void
   onError?: (error: string) => void
@@ -21,10 +24,16 @@ type UseVoiceRecorderReturn = {
   stop: () => void
 }
 
+export function shouldUseMaxRecordingDuration(
+  maxDurationMs: number | null | undefined,
+): maxDurationMs is number {
+  return typeof maxDurationMs === 'number' && maxDurationMs > 0
+}
+
 export function useVoiceRecorder(
   options: UseVoiceRecorderOptions = {},
 ): UseVoiceRecorderReturn {
-  const { maxDurationMs = 120_000, onRecorded, onError } = options
+  const { maxDurationMs = null, onRecorded, onError } = options
   const [state, setState] = useState<RecorderState>('idle')
   const [durationMs, setDurationMs] = useState(0)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -127,10 +136,14 @@ export function useVoiceRecorder(
         setDurationMs(Date.now() - startTimeRef.current)
       }, 100)
 
-      // Max duration auto-stop
-      maxTimerRef.current = setTimeout(() => {
-        stop()
-      }, maxDurationMs)
+      // Optional max duration auto-stop. By default Workspace records until the
+      // user explicitly presses stop; silently ending dictation is worse than a
+      // long recording.
+      if (shouldUseMaxRecordingDuration(maxDurationMs)) {
+        maxTimerRef.current = setTimeout(() => {
+          stop()
+        }, maxDurationMs)
+      }
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : 'Microphone access denied'

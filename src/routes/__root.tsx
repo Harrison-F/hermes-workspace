@@ -11,7 +11,7 @@ import { Toaster } from '@/components/ui/toast'
 import { OnboardingTour } from '@/components/onboarding/onboarding-tour'
 import { KeyboardShortcutsModal } from '@/components/keyboard-shortcuts-modal'
 import { initializeSettingsAppearance } from '@/hooks/use-settings'
-import { HermesOnboarding } from '@/components/onboarding/hermes-onboarding'
+import { HermesOnboarding } from '@/components/onboarding/claude-onboarding'
 import { VoiceDictationManager } from '@/components/voice-dictation-manager'
 
 const APP_CSP = [
