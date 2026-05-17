@@ -30,7 +30,11 @@ function stripProviderPrefix(model: string): string {
 }
 
 const ONBOARDING_KEY = 'hermes-onboarding-complete'
-const LEGACY_ONBOARDING_KEYS = ['hermes-onboarding-completed'] as const
+const LEGACY_ONBOARDING_KEYS = [
+  'hermes-onboarding-completed',
+  'claude-onboarding-complete',
+  'claude-onboarding-completed',
+] as const
 
 type Step = 'welcome' | 'connect' | 'provider' | 'test' | 'done'
 
