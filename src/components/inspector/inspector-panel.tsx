@@ -582,7 +582,7 @@ export function InspectorPanel({ embedded = false }: { embedded?: boolean } = {}
       className={cn(
         embedded
           ? 'relative overflow-hidden rounded-2xl border border-primary-200/20 bg-primary-100/60 shadow-sm backdrop-blur-sm'
-          : 'relative h-full shrink-0 overflow-hidden transition-[width] duration-200',
+          : 'absolute right-0 top-0 bottom-0 z-30 h-full shrink-0 overflow-hidden transition-[width] duration-200',
         !embedded && (isOpen ? 'w-[350px]' : 'w-0'),
       )}
       style={

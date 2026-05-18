@@ -433,11 +433,52 @@ export function HermesOnboarding() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    let cancelled = false
+
+    const markComplete = () => {
+      localStorage.setItem(ONBOARDING_KEY, 'true')
+      for (const legacyKey of LEGACY_ONBOARDING_KEYS) {
+        localStorage.setItem(legacyKey, 'true')
+      }
+    }
+
     const hasCompletedOnboarding = [ONBOARDING_KEY, ...LEGACY_ONBOARDING_KEYS].some(
       (key) => localStorage.getItem(key),
     )
-    if (!hasCompletedOnboarding) {
+    if (hasCompletedOnboarding) {
+      markComplete()
+      return
+    }
+
+    void Promise.allSettled([
+      fetch('/api/gateway-status').then((res) => res.json()),
+      fetch('/api/sessions').then((res) => res.json()),
+    ]).then(([gatewayResult, sessionsResult]) => {
+      if (cancelled) return
+
+      const gatewayStatus =
+        gatewayResult.status === 'fulfilled' ? gatewayResult.value : null
+      const sessionsStatus =
+        sessionsResult.status === 'fulfilled' ? sessionsResult.value : null
+      const hasExistingSessions =
+        sessionsStatus?.ok && Array.isArray(sessionsStatus.sessions) && sessionsStatus.sessions.length > 0
+      const hasUsableBackend =
+        gatewayStatus?.connected ||
+        gatewayStatus?.apiAvailable ||
+        gatewayStatus?.state === 'connected' ||
+        gatewayStatus?.status === 'connected'
+
+      if (hasExistingSessions || hasUsableBackend) {
+        markComplete()
+        setShow(false)
+        return
+      }
+
       setShow(true)
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
