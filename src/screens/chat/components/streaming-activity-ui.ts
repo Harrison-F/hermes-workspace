@@ -7,6 +7,9 @@ export type StreamingActivitySectionState =
 export type StreamingActivitySection = {
   type: string
   input?: Record<string, unknown>
+  preview?: string
+  outputText?: string
+  errorText?: string
   state: StreamingActivitySectionState
 }
 
@@ -115,6 +118,33 @@ export function buildHermesActivitySummary(
     errorCount,
     doneCount,
   }
+}
+
+export function buildStreamingToolDetailSummary(
+  section: StreamingActivitySection,
+): string {
+  const label = formatStreamingActivityLabel(section.type, section.input)
+  const status =
+    section.state === 'output-error'
+      ? 'failed'
+      : section.state === 'output-available'
+        ? 'completed'
+        : 'running'
+  const errorText = section.errorText?.trim()
+  if (errorText) return `${label} ${status}: ${errorText}`
+
+  const outputText = section.outputText?.trim()
+  if (outputText) return `${label} ${status}: ${outputText}`
+
+  const preview = section.preview?.trim()
+  if (preview && preview !== label) return `${label} ${status}: ${preview}`
+
+  const args = section.input && Object.keys(section.input).length > 0
+    ? JSON.stringify(section.input)
+    : ''
+  if (args) return `${label} ${status}: ${args}`
+
+  return `${label} ${status}`
 }
 
 export function shouldAutoExpandHermesActivityCard({

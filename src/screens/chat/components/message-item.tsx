@@ -30,6 +30,7 @@ import {
   useChatSettingsStore,
 } from '@/hooks/use-chat-settings'
 import { cn } from '@/lib/utils'
+import { buildStreamingToolDetailSummary } from './streaming-activity-ui'
 
 
 const WORDS_PER_TICK = 4
@@ -1338,10 +1339,10 @@ function InlineToolSectionItem({
               </button>
             </div>
           )}
-          {/* Fallback when no args or output available */}
+          {/* Fallback when no args or output available: still show useful tool/state detail. */}
           {!hasInputData && !hasOutputData && !isRunning && (
-            <div className="text-[10px] text-primary-400 italic">
-              No detail available for this tool call
+            <div className="text-[10px] text-primary-500">
+              {buildStreamingToolDetailSummary(toolSection)}
             </div>
           )}
         </div>

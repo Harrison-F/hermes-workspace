@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildHermesActivitySummary,
+  buildStreamingToolDetailSummary,
   shouldAutoExpandHermesActivityCard,
   shouldRenderStandaloneActivityMenu,
   shouldRenderStreamingThoughtSummary,
@@ -100,5 +101,23 @@ describe('streaming activity ui helpers', () => {
       visibleLabel: 'read AGENTS.md, browser http://127.0.0.1:3002/chat/new',
       collapsedLabel: 'read AGENTS.md, browser http://127.0.0.1:3002/chat/new',
     })
+  })
+
+  it('builds useful detail text instead of a generic missing-detail fallback', () => {
+    expect(
+      buildStreamingToolDetailSummary({
+        type: 'browser_snapshot',
+        state: 'output-available',
+      }),
+    ).toBe('browser snapshot completed')
+
+    expect(
+      buildStreamingToolDetailSummary({
+        type: 'exec',
+        input: { command: 'npm test -- --run src/stores/chat-store.test.ts' },
+        state: 'output-error',
+        errorText: 'exit code 1',
+      }),
+    ).toMatch(/^exec npm test -- --run src\/store… failed: exit code 1$/)
   })
 })
