@@ -10,8 +10,22 @@ import { textFromMessage } from '../utils'
 import type { ChatMessage } from '../types'
 import type { StreamingState } from '../../../stores/chat-store'
 
-const PORTABLE_HISTORY_STORAGE_KEY = 'hermes_portable_chat_main'
 const PORTABLE_HISTORY_LIMIT = 100
+
+export function resolveRealtimeSessionTargets({
+  sessionKey,
+  friendlyId,
+}: {
+  sessionKey: string
+  friendlyId: string
+}): { sessionKey: string; friendlyId: string } {
+  const resolvedSessionKey = sessionKey && sessionKey !== 'main' ? sessionKey : friendlyId
+  const resolvedFriendlyId = friendlyId && friendlyId !== 'main' ? friendlyId : resolvedSessionKey
+  return {
+    sessionKey: resolvedSessionKey || 'main',
+    friendlyId: resolvedFriendlyId || resolvedSessionKey || 'main',
+  }
+}
 
 /** Read clientId from a message using either camelCase or snake_case field. */
 function readClientId(message: ChatMessage): string {
@@ -81,24 +95,10 @@ export function isInternalControlUserMessage(message: ChatMessage): boolean {
   )
 }
 
-function persistPortableHistory(messages: Array<ChatMessage>) {
-  if (typeof window === 'undefined') return
-
-  const persistedMessages = messages
+function trimPortableHistory(messages: Array<ChatMessage>) {
+  return messages
     .filter((message) => message.__streamingStatus !== 'streaming')
     .slice(-PORTABLE_HISTORY_LIMIT)
-
-  try {
-    window.localStorage.setItem(
-      PORTABLE_HISTORY_STORAGE_KEY,
-      JSON.stringify({
-        messages: persistedMessages,
-        updatedAt: Date.now(),
-      }),
-    )
-  } catch {
-    // Ignore persistence failures (quota, private mode, malformed messages).
-  }
 }
 
 const EMPTY_MESSAGES: Array<ChatMessage> = []
@@ -139,14 +139,19 @@ export function useRealtimeChatHistory({
   onCompactionEnd,
 }: UseRealtimeChatHistoryOptions & { portableMode?: boolean }) {
   const queryClient = useQueryClient()
-  const effectiveFriendlyId = portableMode ? 'main' : friendlyId
+  const resolvedTargets = useMemo(
+    () => (portableMode ? resolveRealtimeSessionTargets({ sessionKey, friendlyId }) : { sessionKey, friendlyId }),
+    [friendlyId, portableMode, sessionKey],
+  )
+  const effectiveFriendlyId = resolvedTargets.friendlyId
+  const effectiveSessionKey = resolvedTargets.sessionKey
   const debugRealtime = useCallback((event: string, extra?: Record<string, unknown>) => {
     if (!DEBUG_STUCK_THINKING || typeof window === 'undefined') return
     const payload = {
       t: Date.now(),
       event,
-      sessionKey: portableMode ? 'main' : sessionKey,
-      friendlyId: portableMode ? 'main' : friendlyId,
+      sessionKey: effectiveSessionKey,
+      friendlyId: effectiveFriendlyId,
       ...extra,
     }
     console.debug('[realtime-chat]', payload)
@@ -155,8 +160,7 @@ export function useRealtimeChatHistory({
     existing.push(payload)
     if (existing.length > 200) existing.shift()
     w.__realtimeChatDebugLog = existing
-  }, [friendlyId, portableMode, sessionKey])
-  const effectiveSessionKey = portableMode ? 'main' : sessionKey
+  }, [effectiveFriendlyId, effectiveSessionKey])
   const [lastCompletedRunAt, setLastCompletedRunAt] = useState<number | null>(
     null,
   )
@@ -417,10 +421,9 @@ export function useRealtimeChatHistory({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSessionKey, historyMessages, mergeHistoryMessages, lastEventAt])
 
-  useEffect(() => {
-    if (!portableMode) return
-    if (mergedMessages.length === 0) return
-    persistPortableHistory(mergedMessages)
+  const displayMessages = useMemo(() => {
+    if (!portableMode) return mergedMessages
+    return trimPortableHistory(mergedMessages)
   }, [mergedMessages, portableMode])
 
   // History has caught up — cleanup realtime buffer outside render
@@ -527,7 +530,7 @@ export function useRealtimeChatHistory({
     streamingState?.lifecycleEvents ?? EMPTY_LIFECYCLE_EVENTS
 
   return {
-    messages: mergedMessages,
+    messages: displayMessages,
     connectionState,
     lastError,
     reconnect,

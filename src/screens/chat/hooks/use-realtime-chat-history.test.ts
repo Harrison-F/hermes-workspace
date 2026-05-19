@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessage } from '../types'
-import { isInternalControlUserMessage } from './use-realtime-chat-history'
+import { isInternalControlUserMessage, resolveRealtimeSessionTargets } from './use-realtime-chat-history'
 
 function makeUserMessage(text: string): ChatMessage {
   return {
@@ -37,5 +37,31 @@ describe('isInternalControlUserMessage', () => {
         makeUserMessage('Please draft a reply to this email and keep it short.'),
       ),
     ).toBe(false)
+  })
+})
+
+describe('resolveRealtimeSessionTargets', () => {
+  it('keeps portable realtime/history targets on the active chat id instead of collapsing to main', () => {
+    expect(
+      resolveRealtimeSessionTargets({
+        sessionKey: 'workspace-portable-abc',
+        friendlyId: 'workspace-portable-abc',
+      }),
+    ).toEqual({
+      sessionKey: 'workspace-portable-abc',
+      friendlyId: 'workspace-portable-abc',
+    })
+  })
+
+  it('falls back from legacy main to the actual friendly id when available', () => {
+    expect(
+      resolveRealtimeSessionTargets({
+        sessionKey: 'main',
+        friendlyId: 'workspace-portable-def',
+      }),
+    ).toEqual({
+      sessionKey: 'workspace-portable-def',
+      friendlyId: 'workspace-portable-def',
+    })
   })
 })
