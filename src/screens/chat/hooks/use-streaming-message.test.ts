@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { shouldResolveStreamSession } from './use-streaming-message'
+import {
+  shouldDetachStreamOnUnmount,
+  shouldResolveStreamSession,
+} from './use-streaming-message'
 
 describe('shouldResolveStreamSession', () => {
   it('does not promote backend api session ids over concrete Workspace sessions', () => {
@@ -42,5 +45,20 @@ describe('shouldResolveStreamSession', () => {
         pinMainSession: false,
       }),
     ).toBe(true)
+  })
+})
+
+describe('shouldDetachStreamOnUnmount', () => {
+  it('keeps accepted, active, and handoff streams alive across chat-view unmounts', () => {
+    expect(shouldDetachStreamOnUnmount('accepted')).toBe(true)
+    expect(shouldDetachStreamOnUnmount('active')).toBe(true)
+    expect(shouldDetachStreamOnUnmount('handoff')).toBe(true)
+  })
+
+  it('allows abort/reset before backend acceptance or after terminal states', () => {
+    expect(shouldDetachStreamOnUnmount('idle')).toBe(false)
+    expect(shouldDetachStreamOnUnmount('requesting')).toBe(false)
+    expect(shouldDetachStreamOnUnmount('complete')).toBe(false)
+    expect(shouldDetachStreamOnUnmount('error')).toBe(false)
   })
 })

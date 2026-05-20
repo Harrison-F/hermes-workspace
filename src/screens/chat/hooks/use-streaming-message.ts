@@ -19,6 +19,33 @@ type StreamLifecyclePhase =
   | 'complete'
   | 'error'
 
+export function shouldDetachStreamOnUnmount(
+  lifecyclePhase: StreamLifecyclePhase,
+): boolean {
+  return (
+    lifecyclePhase === 'accepted' ||
+    lifecyclePhase === 'active' ||
+    lifecyclePhase === 'handoff'
+  )
+}
+
+export function shouldResolveStreamSession({
+  requestedSessionKey,
+  currentSessionKey,
+  resolvedSessionKey,
+  pinMainSession = false,
+}: {
+  requestedSessionKey: string
+  currentSessionKey: string
+  resolvedSessionKey: string
+  pinMainSession?: boolean
+}): boolean {
+  if (!resolvedSessionKey || resolvedSessionKey === currentSessionKey) return false
+  if (pinMainSession && requestedSessionKey === 'main' && currentSessionKey === 'main') return false
+  if (requestedSessionKey === 'main' && currentSessionKey === 'main') return true
+  return requestedSessionKey === 'new' || currentSessionKey === 'new'
+}
+
 type StreamChunk = {
   text?: string
   delta?: string
@@ -295,6 +322,12 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
   useEffect(
     function cleanupStreamingOnUnmount() {
       return function cleanup() {
+        const lifecyclePhase = lifecyclePhaseRef.current as StreamLifecyclePhase
+        if (shouldDetachStreamOnUnmount(lifecyclePhase)) {
+          stopFrame()
+          return
+        }
+
         if (eventSourceRef.current) {
           eventSourceRef.current.abort()
           eventSourceRef.current = null
@@ -303,7 +336,7 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         resetActiveStreamState()
       }
     },
-    [resetActiveStreamState],
+    [resetActiveStreamState, stopFrame],
   )
 
   const pushTargetText = useCallback(
@@ -407,7 +440,13 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
             typeof payload.friendlyId === 'string' && payload.friendlyId.trim()
               ? payload.friendlyId.trim()
               : resolvedSessionKey
-          if (resolvedSessionKey !== activeSessionKeyRef.current) {
+          if (
+            shouldResolveStreamSession({
+              requestedSessionKey: activeSessionKeyRef.current,
+              currentSessionKey: activeSessionKeyRef.current,
+              resolvedSessionKey,
+            })
+          ) {
             activeSessionKeyRef.current = resolvedSessionKey
             onSessionResolved?.({
               sessionKey: resolvedSessionKey,
@@ -694,7 +733,13 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         const resolvedFriendlyId =
           response.headers.get('x-hermes-friendly-id')?.trim() ||
           resolvedSessionKey
-        if (resolvedSessionKey !== activeSessionKeyRef.current) {
+        if (
+          shouldResolveStreamSession({
+            requestedSessionKey: params.sessionKey,
+            currentSessionKey: activeSessionKeyRef.current,
+            resolvedSessionKey,
+          })
+        ) {
           activeSessionKeyRef.current = resolvedSessionKey
           onSessionResolved?.({
             sessionKey: resolvedSessionKey,
