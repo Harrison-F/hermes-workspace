@@ -223181,7 +223181,7 @@ function InlineToolSectionItem({
           }
         )
       ] }),
-      !hasInputData && !hasOutputData && !isRunning && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "text-[10px] text-primary-400 italic", children: "No detail available for this tool call" })
+      !hasInputData && !hasOutputData && !isRunning && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "text-[10px] text-primary-500", children: `${formatToolDisplayLabel(toolSection.type, toolSection.input)} ${isError ? "failed" : isDone ? "completed" : "running"}` })
     ] })
   ] });
 }

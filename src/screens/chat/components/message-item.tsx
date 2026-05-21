@@ -150,6 +150,97 @@ type InlineToolSection = {
   state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error'
 }
 
+export type InlineToolRenderPlanItem =
+  | { kind: 'text'; text: string }
+  | { kind: 'tool'; section: InlineToolSection }
+  | { kind: 'tools'; sections: Array<InlineToolSection> }
+
+export function buildInlineToolRenderPlan(
+  message: ChatMessage,
+  toolSections: Array<InlineToolSection>,
+): Array<InlineToolRenderPlanItem> {
+  const sectionsByKey = new Map(toolSections.map((section) => [section.key, section]))
+  const usedSectionKeys = new Set<string>()
+  const parts = Array.isArray(message.content) ? message.content : []
+  const plan: Array<InlineToolRenderPlanItem> = []
+
+  for (const part of parts) {
+    if (part.type === 'text') {
+      const text = String((part as any).text ?? '')
+      if (text) plan.push({ kind: 'text', text })
+      continue
+    }
+
+    if (part.type === 'toolCall') {
+      const key = String((part as any).id ?? '').trim()
+      const section = key ? sectionsByKey.get(key) : undefined
+      if (section) {
+        usedSectionKeys.add(section.key)
+        plan.push({ kind: 'tool', section })
+      }
+    }
+  }
+
+  for (const section of toolSections) {
+    if (!usedSectionKeys.has(section.key)) plan.push({ kind: 'tool', section })
+  }
+
+  return plan
+}
+
+export function compactInlineToolRenderPlan(
+  plan: Array<InlineToolRenderPlanItem>,
+): Array<InlineToolRenderPlanItem> {
+  const compacted: Array<InlineToolRenderPlanItem> = []
+  let pendingTools: Array<InlineToolSection> = []
+
+  const flushTools = () => {
+    if (pendingTools.length === 0) return
+    compacted.push({ kind: 'tools', sections: pendingTools })
+    pendingTools = []
+  }
+
+  for (const item of plan) {
+    if (item.kind === 'tool') {
+      pendingTools.push(item.section)
+      continue
+    }
+    if (item.kind === 'tools') {
+      pendingTools.push(...item.sections)
+      continue
+    }
+    flushTools()
+    compacted.push(item)
+  }
+
+  flushTools()
+  return compacted
+}
+
+export function detectAssistantCorruptionWarning(
+  role: string,
+  text: string,
+): { kind: 'role-prefix' | 'divider-loop'; detail: string } | null {
+  if (role !== 'assistant') return null
+  const trimmed = text.trimStart()
+  if (/^user\s*\n/i.test(trimmed)) {
+    return {
+      kind: 'role-prefix',
+      detail: 'Stored role is assistant but message body starts with a raw user role prefix.',
+    }
+  }
+
+  const dividerMatches = trimmed.match(/(?:^|\n)\s*-{8,}\s*(?=\n|$)/g)
+  if (dividerMatches && dividerMatches.length >= 20) {
+    return {
+      kind: 'divider-loop',
+      detail: 'Assistant message contains a suspicious repeated divider loop.',
+    }
+  }
+
+  return null
+}
+
 function extractToolResultText(msg: ChatMessage | undefined): string {
   if (!msg) return ''
   // Prefer text from content blocks (exec stdout, Read output, etc.)
