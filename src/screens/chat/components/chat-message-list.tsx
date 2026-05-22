@@ -1060,11 +1060,12 @@ function ChatMessageListComponent({
       const lastId = getStableMessageId(lastMessage, lastEntry.sourceIndex)
       const isBeingTypewritten = streamingState.streamingTargets.has(lastId)
       if (isBeingTypewritten) return false
-      // If we're in grace period waiting for a NEW response, the last assistant
-      // message is from the PREVIOUS turn — don't let its text hide the bubble.
-      // Only suppress once we know this IS the new response (i.e. not waiting).
-      if (thinkingGrace || waitingForResponse || sending) return true
-      // Check if assistant message has visible text — if not, keep showing indicator
+      // If the visible tail is an assistant message with text, the handoff has
+      // produced a real answer. Do not keep a detached Thinking bubble alive just
+      // because a stale waiting/sending flag has not cleared yet — that is the
+      // flash/stuck-thinking regression this display-layer guard prevents. When
+      // waiting for a new response, the tail is the latest user message, not an
+      // older assistant message, so this still preserves the pre-answer bubble.
       const msgText = textFromMessage(lastMessage)
       if (!msgText || msgText.trim().length === 0) return true
       return false
