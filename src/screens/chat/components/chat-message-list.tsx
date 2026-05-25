@@ -164,10 +164,50 @@ function ToolCallCard({ name, phase }: { name: string; phase: string }) {
 }
 
 type ThinkingBubbleProps = {
-  activeToolCalls?: Array<{ id: string; name: string; phase: string }>
+  activeToolCalls?: Array<ActiveToolCall>
   liveToolActivity?: Array<{ name: string; timestamp: number }>
   researchCard?: UseResearchCardResult
   isCompacting?: boolean
+}
+
+type ActiveToolCall = {
+  id: string
+  name: string
+  phase: string
+  args?: unknown
+  preview?: string
+  result?: string
+}
+
+export type NormalizedStreamingToolCall = {
+  id: string
+  name: string
+  phase: 'calling' | 'running' | 'done' | 'error'
+  args?: unknown
+  preview?: string
+  result?: string
+}
+
+export function normalizeStreamingToolCalls(
+  activeToolCalls: Array<ActiveToolCall>,
+): Array<NormalizedStreamingToolCall> {
+  return activeToolCalls.map((toolCall) => ({
+    id: toolCall.id,
+    name: toolCall.name,
+    phase:
+      toolCall.phase === 'complete' || toolCall.phase === 'completed'
+        ? 'done'
+        : toolCall.phase === 'start'
+          ? 'calling'
+          : toolCall.phase === 'failed'
+            ? 'error'
+            : toolCall.phase === 'calling' || toolCall.phase === 'running'
+              ? toolCall.phase
+              : 'calling',
+    args: toolCall.args,
+    preview: toolCall.preview,
+    result: toolCall.result,
+  }))
 }
 
 /**
@@ -461,6 +501,88 @@ type DisplayEntry = {
   attachedToolMessages: Array<ChatMessage>
 }
 
+function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
+  if (message.role !== 'assistant') return false
+  if (textFromMessage(message).trim().length > 0) return false
+  return getToolCallsFromMessage(message).length > 0
+}
+
+export function buildDisplayEntries(
+  displayMessages: Array<ChatMessage>,
+): Array<DisplayEntry> {
+  const entries: Array<DisplayEntry> = []
+
+  displayMessages.forEach((message, index) => {
+    if (message.role === 'tool' || message.role === 'toolResult') {
+      const previousEntry = entries[entries.length - 1]
+      if (previousEntry?.message.role === 'assistant') {
+        previousEntry.attachedToolMessages.push(message)
+      }
+      return
+    }
+
+    if (isToolOnlyAssistantMessage(message)) {
+      return
+    }
+
+    entries.push({
+      message,
+      sourceIndex: index,
+      attachedToolMessages: [],
+    })
+  })
+
+  return entries
+}
+
+export function getTrailingToolOnlyTurnSummary(
+  displayMessages: Array<ChatMessage>,
+): { count: number; toolNames: Array<string>; hasFinalAssistantText: boolean } | null {
+  let lastTextAssistantIndex = -1
+  for (let index = displayMessages.length - 1; index >= 0; index -= 1) {
+    const message = displayMessages[index]
+    if (message?.role === 'assistant' && textFromMessage(message).trim().length > 0) {
+      lastTextAssistantIndex = index
+      break
+    }
+  }
+
+  if (lastTextAssistantIndex < 0 || lastTextAssistantIndex === displayMessages.length - 1) {
+    return null
+  }
+
+  const trailing = displayMessages.slice(lastTextAssistantIndex + 1)
+  if (trailing.length === 0) return null
+  const allTrailingToolOnly = trailing.every(
+    (message) =>
+      isToolOnlyAssistantMessage(message) ||
+      message.role === 'tool' ||
+      message.role === 'toolResult',
+  )
+  if (!allTrailingToolOnly) return null
+
+  const toolNames = Array.from(
+    new Set(
+      trailing
+        .flatMap((message) => {
+          if (message.role === 'toolResult') {
+            return typeof message.toolName === 'string' && message.toolName.trim()
+              ? [message.toolName.trim()]
+              : []
+          }
+          return getToolCallsFromMessage(message).map((toolCall) => toolCall.name)
+        })
+        .filter((name): name is string => typeof name === 'string' && name.trim().length > 0),
+    ),
+  )
+
+  return {
+    count: trailing.length,
+    toolNames,
+    hasFinalAssistantText: true,
+  }
+}
+
 function escapeAttributeSelector(value: string): string {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
     return CSS.escape(value)
@@ -496,7 +618,7 @@ type ChatMessageListProps = {
   }>
   isStreaming?: boolean
   bottomOffset?: number | string
-  activeToolCalls?: Array<{ id: string; name: string; phase: string }>
+  activeToolCalls?: Array<ActiveToolCall>
   liveToolActivity?: Array<{ name: string; timestamp: number }>
   researchCard?: UseResearchCardResult
   hideSystemMessages?: boolean
@@ -712,28 +834,10 @@ function ChatMessageListComponent({
     return sortMessagesChronologically(deduped)
   }, [hideSystemMessages, messages])
 
-  const displayEntries = useMemo<Array<DisplayEntry>>(() => {
-    const entries: Array<DisplayEntry> = []
-
-    displayMessages.forEach((message, index) => {
-      // Group both 'tool' and 'toolResult' roles into the preceding assistant bubble
-      if (message.role === 'tool' || message.role === 'toolResult') {
-        const previousEntry = entries[entries.length - 1]
-        if (previousEntry?.message.role === 'assistant') {
-          previousEntry.attachedToolMessages.push(message)
-        }
-        return
-      }
-
-      entries.push({
-        message,
-        sourceIndex: index,
-        attachedToolMessages: [],
-      })
-    })
-
-    return entries
-  }, [displayMessages])
+  const displayEntries = useMemo<Array<DisplayEntry>>(
+    () => buildDisplayEntries(displayMessages),
+    [displayMessages],
+  )
 
   // Bug 2 fix: grace-period effects — placed after displayMessages so they can
   // reference it safely.
@@ -1087,24 +1191,8 @@ function ChatMessageListComponent({
     (isStreaming && !streamingText) ||
     (isStreaming && activeToolCalls.length > 0)
 
-  const normalizedStreamingToolCalls = useMemo<
-    Array<{ id: string; name: string; phase: 'calling' | 'running' | 'done' | 'error' }>
-  >(
-    () =>
-      activeToolCalls.map((toolCall) => ({
-        id: toolCall.id,
-        name: toolCall.name,
-        phase:
-          toolCall.phase === 'complete' || toolCall.phase === 'completed'
-            ? 'done'
-            : toolCall.phase === 'start'
-              ? 'calling'
-              : toolCall.phase === 'failed'
-                ? 'error'
-                : toolCall.phase === 'calling' || toolCall.phase === 'running'
-                  ? toolCall.phase
-                  : 'calling',
-      })),
+  const normalizedStreamingToolCalls = useMemo(
+    () => normalizeStreamingToolCalls(activeToolCalls),
     [activeToolCalls],
   )
 
