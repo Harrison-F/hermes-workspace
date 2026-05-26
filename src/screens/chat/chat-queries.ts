@@ -66,7 +66,10 @@ export async function fetchHistory(payload: {
   sessionKey: string
   friendlyId: string
 }): Promise<HistoryResponse> {
-  const query = new URLSearchParams({ limit: '1000' })
+  // Keep the display/refetch window bounded. Portable-mode history is stored
+  // locally, so asking for the entire transcript here can reintroduce stale
+  // context and visibly replay older turns during refetch handoff.
+  const query = new URLSearchParams({ limit: '200' })
   if (payload.sessionKey) query.set('sessionKey', payload.sessionKey)
   if (payload.friendlyId) query.set('friendlyId', payload.friendlyId)
   const res = await fetch(`/api/history?${query.toString()}`)

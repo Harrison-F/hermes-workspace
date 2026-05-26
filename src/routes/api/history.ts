@@ -20,11 +20,13 @@ export const Route = createFileRoute('/api/history')({
           return json({ ok: false, error: 'Unauthorized' }, { status: 401 })
         }
         await ensureGatewayProbed()
+        const url = new URL(request.url)
+        const rawLimit = Number(url.searchParams.get('limit') || '200')
+        const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 200
         if (!getGatewayCapabilities().sessions) {
-          const url = new URL(request.url)
           const requestedSessionKey = url.searchParams.get('sessionKey')?.trim() || ''
           const messages = requestedSessionKey
-            ? await getWorkspaceSessionMessages(requestedSessionKey)
+            ? await getWorkspaceSessionMessages(requestedSessionKey, limit)
             : []
           return json({
             sessionKey: requestedSessionKey || 'new',
@@ -35,8 +37,6 @@ export const Route = createFileRoute('/api/history')({
           })
         }
         try {
-          const url = new URL(request.url)
-          const limit = Number(url.searchParams.get('limit') || '200')
           const rawSessionKey = url.searchParams.get('sessionKey')?.trim()
           const friendlyId = url.searchParams.get('friendlyId')?.trim()
           let { sessionKey } = await resolveSessionKey({

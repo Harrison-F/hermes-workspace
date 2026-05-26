@@ -126,11 +126,26 @@ export async function updateWorkspaceSession(
   return session
 }
 
-export async function getWorkspaceSessionMessages(sessionKey: string) {
+export function boundWorkspaceSessionMessages(
+  messages: Array<WorkspaceStoredMessage>,
+  limit?: number,
+) {
+  const bounded =
+    typeof limit === 'number' && Number.isFinite(limit) && limit > 0
+      ? messages.slice(-Math.floor(limit))
+      : messages
+  const firstIndex = Math.max(0, messages.length - bounded.length)
+  return bounded.map((message, index) => ({
+    ...message,
+    __historyIndex: firstIndex + index,
+  }))
+}
+
+export async function getWorkspaceSessionMessages(sessionKey: string, limit?: number) {
   const store = await readStore()
   const session = store.sessions.find((entry) => entry.key === sessionKey || entry.friendlyId === sessionKey)
   if (!session) return []
-  return session.messages.map((message, index) => ({ ...message, __historyIndex: index }))
+  return boundWorkspaceSessionMessages(session.messages, limit)
 }
 
 export async function appendWorkspaceMessage(
