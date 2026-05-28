@@ -113,6 +113,24 @@ describe('streaming activity ui helpers', () => {
 
     expect(
       buildStreamingToolDetailSummary({
+        type: 'browser_snapshot',
+        state: 'output-available',
+        outputText: 'No detail available for this tool call',
+        preview: 'Captured 14 interactive elements on /chat/new',
+      }),
+    ).toBe('browser snapshot completed: Captured 14 interactive elements on /chat/new')
+
+    expect(
+      buildStreamingToolDetailSummary({
+        type: 'search_files',
+        input: { pattern: 'streamToolCalls' },
+        state: 'output-available',
+        outputText: 'No output captured',
+      }),
+    ).toBe('search "streamToolCalls" completed: {"pattern":"streamToolCalls"}')
+
+    expect(
+      buildStreamingToolDetailSummary({
         type: 'exec',
         input: { command: 'npm test -- --run src/stores/chat-store.test.ts' },
         state: 'output-error',

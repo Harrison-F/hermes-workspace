@@ -30,7 +30,10 @@ import {
   useChatSettingsStore,
 } from '@/hooks/use-chat-settings'
 import { cn } from '@/lib/utils'
-import { buildStreamingToolDetailSummary } from './streaming-activity-ui'
+import {
+  buildStreamingToolDetailSummary,
+  isGenericMissingToolDetail,
+} from './streaming-activity-ui'
 
 
 const WORDS_PER_TICK = 4
@@ -896,8 +899,10 @@ function ToolCallPill({ toolCall }: { toolCall: StreamToolCall }) {
   const elapsed = useElapsedTime(isRunning)
   const dots = useAnimatedDots()
 
-  const result = toolCall.result ?? ''
-  const preview = result.slice(0, 100)
+  const result = typeof toolCall.result === 'string' && !isGenericMissingToolDetail(toolCall.result)
+    ? toolCall.result
+    : ''
+  const preview = result ? result.slice(0, 100) : (toolCall.preview ?? '').slice(0, 100)
   const detail = result.slice(0, 500)
   const hasMore = result.length > 500
 
@@ -1817,7 +1822,17 @@ function MessageItemComponent({
   const streamToolSections = useMemo<Array<InlineToolSection>>(
     () =>
       effectiveStreamToolCalls.map((toolCall, index) => {
-        const outputText = typeof toolCall.result === 'string' ? toolCall.result : ''
+        const resultText =
+          typeof toolCall.result === 'string' &&
+          !isGenericMissingToolDetail(toolCall.result)
+            ? toolCall.result
+            : ''
+        const previewText =
+          typeof toolCall.preview === 'string' &&
+          !isGenericMissingToolDetail(toolCall.preview)
+            ? toolCall.preview
+            : undefined
+        const outputText = resultText || (!effectiveIsStreaming ? previewText ?? '' : '')
         const isError = toolCall.phase === 'error'
         const isComplete = toolCall.phase === 'done' || toolCall.phase === 'complete' || toolCall.phase === 'completed' || toolCall.phase === 'result' || outputText.length > 0
         return {
@@ -1827,7 +1842,7 @@ function MessageItemComponent({
             toolCall.args && typeof toolCall.args === 'object'
               ? (toolCall.args as Record<string, unknown>)
               : undefined,
-          preview: toolCall.preview,
+          preview: previewText,
           outputText,
           errorText: isError ? outputText || 'Tool failed' : undefined,
           state: isError

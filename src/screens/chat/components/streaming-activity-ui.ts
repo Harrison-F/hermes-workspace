@@ -48,6 +48,11 @@ export function formatStreamingActivityLabel(
     return action ? `browser ${action}` : 'browser navigate'
   }
 
+  if (lowerName === 'search_files') {
+    const pattern = readStringArg(args, 'pattern', 'query', 'regex')
+    return pattern ? `search "${pattern}"` : 'search files'
+  }
+
   if (lowerName === 'terminal' || lowerName === 'exec') {
     const cmd = readStringArg(args, 'command', 'cmd')
     return cmd
@@ -120,6 +125,16 @@ export function buildHermesActivitySummary(
   }
 }
 
+const GENERIC_MISSING_TOOL_DETAIL_PATTERN =
+  /^(?:no\s+)?(?:detail|details|output|result)\s+(?:available|captured)(?:\s+for\s+(?:this\s+)?tool(?:\s+call)?)?\.?$/i
+
+export function isGenericMissingToolDetail(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    GENERIC_MISSING_TOOL_DETAIL_PATTERN.test(value.trim())
+  )
+}
+
 export function buildStreamingToolDetailSummary(
   section: StreamingActivitySection,
 ): string {
@@ -131,13 +146,19 @@ export function buildStreamingToolDetailSummary(
         ? 'completed'
         : 'running'
   const errorText = section.errorText?.trim()
-  if (errorText) return `${label} ${status}: ${errorText}`
+  if (errorText && !isGenericMissingToolDetail(errorText)) {
+    return `${label} ${status}: ${errorText}`
+  }
 
   const outputText = section.outputText?.trim()
-  if (outputText) return `${label} ${status}: ${outputText}`
+  if (outputText && !isGenericMissingToolDetail(outputText)) {
+    return `${label} ${status}: ${outputText}`
+  }
 
   const preview = section.preview?.trim()
-  if (preview && preview !== label) return `${label} ${status}: ${preview}`
+  if (preview && preview !== label && !isGenericMissingToolDetail(preview)) {
+    return `${label} ${status}: ${preview}`
+  }
 
   const args = section.input && Object.keys(section.input).length > 0
     ? JSON.stringify(section.input)
