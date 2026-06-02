@@ -369,15 +369,23 @@ export function useChatHistory({
         }
       }
 
-      if (!optimisticMessages.length) return dataWithRecovery
+      const cachedMessages = Array.isArray((cached as any)?.messages)
+        ? ((cached as any).messages as Array<ChatMessage>)
+        : []
+      const dataWithCachedTail = mergeCachedTailMessages(
+        dataWithRecovery,
+        cachedMessages,
+      )
+
+      if (!optimisticMessages.length) return dataWithCachedTail
 
       const merged = mergeOptimisticHistoryMessages(
-        dataWithRecovery.messages,
+        dataWithCachedTail.messages,
         optimisticMessages,
       )
 
       return {
-        ...dataWithRecovery,
+        ...dataWithCachedTail,
         messages: merged,
       }
     },
@@ -695,4 +703,34 @@ function mergeOptimisticHistoryMessages(
   }
 
   return merged
+}
+
+export function mergeCachedTailMessages(
+  serverData: HistoryResponse,
+  cachedMessages: Array<ChatMessage>,
+): HistoryResponse {
+  if (!cachedMessages.length) return serverData
+
+  const serverMessages = Array.isArray(serverData.messages)
+    ? serverData.messages
+    : []
+  const serverNewest = serverMessages.length
+    ? Math.max(...serverMessages.map(getMessageTimestamp))
+    : 0
+  const cachedTail = cachedMessages.filter((cachedMessage) => {
+    if (historyContainsMessage(serverMessages, cachedMessage)) return false
+    if (isOptimisticUserMessage(cachedMessage)) return false
+    const cachedTime = getMessageTimestamp(cachedMessage)
+    if (cachedTime < serverNewest) return false
+    const text = textFromMessage(cachedMessage).trim()
+    if (!text && cachedMessage.role !== 'assistant') return false
+    return cachedMessage.role === 'user' || cachedMessage.role === 'assistant'
+  })
+
+  if (!cachedTail.length) return serverData
+
+  const messages = [...serverMessages, ...cachedTail]
+  messages.sort((a, b) => getMessageTimestamp(a) - getMessageTimestamp(b))
+
+  return { ...serverData, messages }
 }
