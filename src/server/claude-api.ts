@@ -51,6 +51,15 @@ export type HermesMessage = {
   finish_reason?: string | null
 }
 
+type SessionsListResponse =
+  | Array<HermesSession>
+  | {
+      items?: Array<HermesSession>
+      sessions?: Array<HermesSession>
+      data?: Array<HermesSession>
+      total?: number
+    }
+
 export type HermesConfig = {
   model?: string
   provider?: string
@@ -190,10 +199,11 @@ export async function listSessions(
   limit = 50,
   offset = 0,
 ): Promise<Array<HermesSession>> {
-  const resp = await hermesGet<{ items: Array<HermesSession>; total: number }>(
+  const resp = await hermesGet<SessionsListResponse>(
     `/api/sessions?limit=${limit}&offset=${offset}`,
   )
-  return resp.items
+  if (Array.isArray(resp)) return resp
+  return resp.items ?? resp.sessions ?? resp.data ?? []
 }
 
 export async function getSession(sessionId: string): Promise<HermesSession> {

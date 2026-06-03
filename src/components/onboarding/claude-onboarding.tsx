@@ -466,7 +466,9 @@ export function HermesOnboarding() {
         gatewayStatus?.connected ||
         gatewayStatus?.apiAvailable ||
         gatewayStatus?.state === 'connected' ||
-        gatewayStatus?.status === 'connected'
+        gatewayStatus?.status === 'connected' ||
+        gatewayStatus?.capabilities?.chatCompletions === true ||
+        gatewayStatus?.capabilities?.streaming === true
 
       if (hasExistingSessions || hasUsableBackend) {
         markComplete()
