@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils'
 import {
   buildStreamingToolDetailSummary,
   isGenericMissingToolDetail,
+  normalizeToolDetailText,
 } from './streaming-activity-ui'
 
 
@@ -1311,7 +1312,9 @@ function InlineToolSectionItem({
       2,
     )
   }, [showRawJson, toolSection.type, toolSection.input, toolSection.outputText, toolSection.errorText])
-  const outputText = toolSection.outputText || toolSection.errorText || ''
+  const outputText =
+    normalizeToolDetailText(toolSection.outputText) ||
+    normalizeToolDetailText(toolSection.errorText)
   const shouldTruncateOutput = outputText.length > 800
   const displayedOutputText =
     shouldTruncateOutput && !showFullOutput
@@ -1340,7 +1343,7 @@ function InlineToolSectionItem({
 
   const previewLabel = toolSection.preview || headerArgTruncated
   const hasInputData = toolSection.input && Object.keys(toolSection.input).length > 0
-  const hasOutputData = !!(toolSection.outputText || toolSection.errorText)
+  const hasOutputData = !!outputText
   // Always expandable — show args, output, or at minimum the tool name/state
   const hasExpandableContent = true
 
@@ -1402,14 +1405,14 @@ function InlineToolSectionItem({
           ) : null}
 
           {!showRawJson ? (
-            isError && toolSection.errorText ? (
+            isError && outputText ? (
               <div>
                 <div className="text-[9px] uppercase tracking-widest text-red-500 mb-0.5 font-sans">Error</div>
                 <pre className="max-h-48 overflow-x-auto whitespace-pre-wrap break-words rounded p-2 text-[10px] font-mono text-red-400" style={{ background: 'var(--code-bg, var(--theme-card))' }}>
                   {displayedOutputText}
                 </pre>
               </div>
-            ) : toolSection.outputText ? (
+            ) : outputText ? (
               <div>
                 <div className="text-[9px] uppercase tracking-widest text-primary-500 mb-0.5 font-sans">Output</div>
                 <pre className="max-h-48 overflow-x-auto whitespace-pre-wrap break-words rounded p-2 text-[10px] font-mono" style={{ background: 'var(--code-bg, var(--theme-card))', color: 'var(--code-foreground)' }}>
@@ -1423,7 +1426,7 @@ function InlineToolSectionItem({
             </pre>
           )}
 
-          {(shouldTruncateOutput || toolSection.outputText) && (
+          {(shouldTruncateOutput || outputText) && (
             <div className="flex flex-wrap items-center gap-2">
               {shouldTruncateOutput && (
                 <button type="button" onClick={(e) => { e.stopPropagation(); setShowFullOutput((v) => !v) }} className="text-[9px] text-primary-500 hover:text-primary-700">
@@ -1800,7 +1803,9 @@ function MessageItemComponent({
     () =>
       attachedToolMessages.map((toolMessage, index) => {
         const messageText = textFromMessage(toolMessage)
-        const outputText = extractToolResultText(toolMessage) || messageText
+        const outputText =
+          normalizeToolDetailText(extractToolResultText(toolMessage)) ||
+          normalizeToolDetailText(messageText)
         const errorText = toolMessage.isError ? outputText || 'Unknown error' : undefined
         const toolType =
           (typeof toolMessage.toolName === 'string' && toolMessage.toolName.trim()) ||
@@ -1862,9 +1867,9 @@ function MessageItemComponent({
         let outputText = ''
         if (rawOutput) {
           if (typeof rawOutput.output === 'string') {
-            outputText = rawOutput.output
+            outputText = normalizeToolDetailText(rawOutput.output)
           } else {
-            outputText = JSON.stringify(rawOutput, null, 2)
+            outputText = normalizeToolDetailText(JSON.stringify(rawOutput, null, 2))
           }
         }
 

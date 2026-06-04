@@ -135,6 +135,12 @@ export function isGenericMissingToolDetail(value: unknown): boolean {
   )
 }
 
+export function normalizeToolDetailText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  return trimmed && !isGenericMissingToolDetail(trimmed) ? trimmed : ''
+}
+
 export function buildStreamingToolDetailSummary(
   section: StreamingActivitySection,
 ): string {

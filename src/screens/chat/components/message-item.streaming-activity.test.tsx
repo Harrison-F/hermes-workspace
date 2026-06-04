@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildHermesActivitySummary,
   buildStreamingToolDetailSummary,
+  normalizeToolDetailText,
   shouldAutoExpandHermesActivityCard,
   shouldRenderStandaloneActivityMenu,
   shouldRenderStreamingThoughtSummary,
@@ -101,6 +102,14 @@ describe('streaming activity ui helpers', () => {
       visibleLabel: 'read AGENTS.md, browser http://127.0.0.1:3002/chat/new',
       collapsedLabel: 'read AGENTS.md, browser http://127.0.0.1:3002/chat/new',
     })
+  })
+
+  it('normalizes generic missing-detail strings before rendering expanded output', () => {
+    expect(normalizeToolDetailText('No detail available for this tool call')).toBe('')
+    expect(normalizeToolDetailText('No output captured')).toBe('')
+    expect(normalizeToolDetailText('  Captured 14 interactive elements  ')).toBe(
+      'Captured 14 interactive elements',
+    )
   })
 
   it('builds useful detail text instead of a generic missing-detail fallback', () => {
